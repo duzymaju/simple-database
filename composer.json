@@ -1,0 +1,27 @@
+{
+    "name": "majpage/simple-database",
+    "version": "0.1.0",
+    "description": "Simple PHP database client",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Wiktor Maj",
+            "email": "w.maj@majpage.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "SimpleDatabase\\": "src/"
+        }
+    },
+    "require": {
+        "php" : ">=5.6",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "majpage/simple-structure": "^0.1.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5"
+    }
+}
