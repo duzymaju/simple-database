@@ -29,6 +29,16 @@ class Command implements CommandInterface
     }
 
     /**
+     * Get type
+     *
+     * @return int
+     */
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    /**
      * To string
      *
      * @return string

@@ -28,4 +28,11 @@ interface CommandInterface extends ToStringInterface
      * @param array|null $items items
      */
     public function __construct($type, array $items = null);
+
+    /**
+     * Get type
+     *
+     * @return int
+     */
+    public function getType();
 }

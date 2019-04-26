@@ -207,14 +207,17 @@ class Query implements QueryInterface
         if (isset($this->where)) {
             $queryString .= $this->where->toString();
         }
-        if (isset($this->order)) {
-            $queryString .= $this->order->toString();
-        }
-        if (isset($this->group)) {
-            $queryString .= $this->group->toString();
-        }
-        if (isset($this->limit)) {
-            $queryString .= $this->limit->toString();
+
+        if ($this->command->getType() === CommandInterface::TYPE_SELECT) {
+            if (isset($this->order)) {
+                $queryString .= $this->order->toString();
+            }
+            if (isset($this->group)) {
+                $queryString .= $this->group->toString();
+            }
+            if (isset($this->limit)) {
+                $queryString .= $this->limit->toString();
+            }
         }
 
         return $queryString;

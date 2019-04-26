@@ -20,8 +20,8 @@ final class QueryTest extends TestCase
         ;
     }
 
-    /** Test counting by */
-    public function testCountingBy()
+    /** Test select query */
+    public function testSelectQuery()
     {
         $query = new Query($this->connectionMock, Command::TYPE_SELECT, 'Table', 't', [
             'jt.*', 'ljt.param3', 'rjt.param3',
@@ -49,5 +49,16 @@ final class QueryTest extends TestCase
             'ORDER BY jt.param2 DESC, rjt.param1 ASC ' .
             'GROUP BY ljt.param1, ljt.param2 ' .
             'LIMIT 10, 5', $query->getQueryString());
+    }
+
+    /** Test delete query */
+    public function testDeleteQuery()
+    {
+        $query = new Query($this->connectionMock, Command::TYPE_DELETE, 'Table', null, [
+            'itemOfImproperList',
+        ]);
+        $query->where([ 'aa = :aa', 'bb = :bb' ]);
+
+        $this->assertEquals('DELETE FROM Table WHERE aa = :aa && bb = :bb', $query->getQueryString());
     }
 }
