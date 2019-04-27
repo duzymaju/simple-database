@@ -15,19 +15,17 @@ class Order implements OrderInterface
     /** @var string */
     const DESC = 'DESC';
 
-    /** @var array */
+    /** @var string[] */
     private $columns = [];
 
     /**
      * Construct
      *
-     * @param array $columns columns
+     * @param string[] $columns columns
      */
     public function __construct(array $columns)
     {
-        $this->columns = array_filter($columns, function ($order, $column) {
-            return ($order === self::ASC || $order === self::DESC) && !empty($column);
-        }, ARRAY_FILTER_USE_BOTH);
+        $this->columns = $columns;
     }
 
     /**
@@ -41,9 +39,9 @@ class Order implements OrderInterface
             return '';
         }
 
-        $statement = ' ORDER BY ' . implode(', ', array_map(function ($column, $order) {
-            return $column . ' ' . $order;
-        }, array_keys($this->columns), array_values($this->columns)));
+        $statement = ' ORDER BY ' . implode(', ', array_map(function ($direction, $column) {
+            return $column . ' ' . strtoupper($direction);
+        }, array_values($this->columns), array_keys($this->columns)));
 
         return $statement;
     }

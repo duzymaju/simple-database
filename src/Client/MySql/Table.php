@@ -19,23 +19,33 @@ class Table implements TableInterface
     /** @var string|null */
     private $tableSlug;
 
-    /** @var array */
+    /** @var string[] */
     private $condition;
 
     /**
      * Construct
      *
-     * @param int               $type      type
-     * @param string            $tableName table name
-     * @param string|null       $tableSlug table slug
-     * @param array|string|null $condition condition
+     * @param int         $type      type
+     * @param string      $tableName table name
+     * @param string|null $tableSlug table slug
+     * @param string[]    $condition condition
      */
-    public function __construct($type, $tableName, $tableSlug = null, $condition = null)
+    public function __construct($type, $tableName, $tableSlug = null, array $condition = [])
     {
         $this->type = $type;
         $this->tableName = $tableName;
         $this->tableSlug = $tableSlug;
-        $this->condition = (array) $condition;
+        $this->condition = $condition;
+    }
+
+    /**
+     * Is main
+     *
+     * @return bool
+     */
+    public function isMain()
+    {
+        return $this->type === self::TYPE_MAIN;
     }
 
     /**

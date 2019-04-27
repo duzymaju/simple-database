@@ -12,7 +12,8 @@ interface GroupInterface extends ToStringInterface
     /**
      * Construct
      *
-     * @param array $columns columns
+     * @param string[] $columns columns
+     * @param string[] $having  having
      */
-    public function __construct(array $columns);
+    public function __construct(array $columns, array $having = []);
 }

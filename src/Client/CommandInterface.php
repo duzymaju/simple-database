@@ -24,10 +24,10 @@ interface CommandInterface extends ToStringInterface
     /**
      * Construct
      *
-     * @param int        $type  type
-     * @param array|null $items items
+     * @param int      $type  type
+     * @param string[] $items items
      */
-    public function __construct($type, array $items = null);
+    public function __construct($type, array $items = []);
 
     /**
      * Get type

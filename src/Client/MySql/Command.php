@@ -19,13 +19,13 @@ class Command implements CommandInterface
     /**
      * Construct
      *
-     * @param int        $type  type
-     * @param array|null $items items
+     * @param int      $type  type
+     * @param string[] $items items
      */
-    public function __construct($type, array $items = null)
+    public function __construct($type, array $items = [])
     {
         $this->type = $type;
-        $this->items = is_array($items) ? $items : [ '*' ];
+        $this->items = count($items) > 0 ? $items : [ '*' ];
     }
 
     /**

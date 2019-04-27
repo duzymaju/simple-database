@@ -2,24 +2,24 @@
 
 namespace SimpleDatabase\Client\MySql;
 
-use SimpleDatabase\Client\WhereInterface;
+use SimpleDatabase\Client\SetInterface;
 
 /**
- * Where
+ * Set
  */
-class Where implements WhereInterface
+class Set implements SetInterface
 {
     /** @var string[] */
-    private $where;
+    private $set;
 
     /**
      * Construct
      *
-     * @param string[] $where where
+     * @param string[] $set set
      */
-    public function __construct(array $where)
+    public function __construct(array $set)
     {
-        $this->where = $where;
+        $this->set = $set;
     }
 
     /**
@@ -29,11 +29,11 @@ class Where implements WhereInterface
      */
     public function toString()
     {
-        if (count($this->where) === 0) {
+        if (count($this->set) === 0) {
             return '';
         }
 
-        $statement = ' WHERE ' . implode(' && ', $this->where);
+        $statement = ' SET ' . implode(', ', $this->set);
 
         return $statement;
     }

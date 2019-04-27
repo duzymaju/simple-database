@@ -10,6 +10,7 @@ use SimpleDatabase\Client\GroupInterface;
 use SimpleDatabase\Client\LimitInterface;
 use SimpleDatabase\Client\OrderInterface;
 use SimpleDatabase\Client\QueryInterface;
+use SimpleDatabase\Client\SetInterface;
 use SimpleDatabase\Client\TableInterface;
 use SimpleDatabase\Client\WhereInterface;
 
@@ -29,6 +30,9 @@ class Query implements QueryInterface
 
     /** @var TableInterface[] */
     private $tables = [];
+
+    /** @var SetInterface|null */
+    private $set;
 
     /** @var WhereInterface|null */
     private $where;
@@ -52,29 +56,29 @@ class Query implements QueryInterface
      * @param int                 $commandType command type
      * @param string              $tableName   table name
      * @param string|null         $tableSlug   table slug
-     * @param array|null          $items       items
+     * @param string[]|string     $items       items
      */
     public function __construct(ConnectionInterface $connection, $commandType, $tableName, $tableSlug = null,
-        array $items = null)
+        $items = [])
     {
         $this->client = $connection->getClient();
-        $this->command = new Command($commandType, $items);
+        $this->command = new Command($commandType, $this->getStringList($items));
         $this->tables[] = new Table(Table::TYPE_MAIN, $tableName, $tableSlug);
     }
 
     /**
      * Join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
     public function join($tableName, $tableSlug, $condition)
     {
         $this->resetStatement();
-        $this->tables[] = new Table(Table::TYPE_JOIN, $tableName, $tableSlug, $condition);
+        $this->tables[] = new Table(Table::TYPE_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
 	}
@@ -82,16 +86,16 @@ class Query implements QueryInterface
     /**
      * Left join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
     public function leftJoin($tableName, $tableSlug, $condition)
     {
         $this->resetStatement();
-        $this->tables[] = new Table(Table::TYPE_LEFT_JOIN, $tableName, $tableSlug, $condition);
+        $this->tables[] = new Table(Table::TYPE_LEFT_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
 	}
@@ -99,16 +103,16 @@ class Query implements QueryInterface
     /**
      * Right join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
     public function rightJoin($tableName, $tableSlug, $condition)
     {
         $this->resetStatement();
-        $this->tables[] = new Table(Table::TYPE_RIGHT_JOIN, $tableName, $tableSlug, $condition);
+        $this->tables[] = new Table(Table::TYPE_RIGHT_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
 	}
@@ -116,31 +120,62 @@ class Query implements QueryInterface
     /**
      * Outer join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
     public function outerJoin($tableName, $tableSlug, $condition)
     {
         $this->resetStatement();
-        $this->tables[] = new Table(Table::TYPE_OUTER_JOIN, $tableName, $tableSlug, $condition);
+        $this->tables[] = new Table(Table::TYPE_OUTER_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
 	}
 
     /**
+     * Set
+     *
+     * @param string[]|string $set set
+     *
+     * @return self
+     */
+    public function set($set)
+    {
+        $this->resetStatement();
+        $this->set = new Set($this->getStringList($set));
+
+        return $this;
+    }
+
+    /**
      * Where
      *
-     * @param string|array $where where
+     * @param string[]|string $where where
      *
      * @return self
      */
     public function where($where)
     {
         $this->resetStatement();
-        $this->where = new Where($where);
+        $this->where = new Where($this->getStringList($where));
+
+        return $this;
+    }
+
+    /**
+     * Group by
+     *
+     * @param string[]|string $group  group
+     * @param string[]|string $having having
+     *
+     * @return self
+     */
+    public function groupBy($group, $having = [])
+    {
+        $this->resetStatement();
+        $this->group = new Group($this->getStringList($group), $this->getStringList($having));
 
         return $this;
     }
@@ -155,24 +190,15 @@ class Query implements QueryInterface
     public function orderBy($order)
     {
         $this->resetStatement();
-        $orderList = is_array($order) ? $order : array_combine([ $order ], [ Order::ASC ]);
-        $this->order = new Order($orderList);
-
-        return $this;
-    }
-
-    /**
-     * Group by
-     *
-     * @param string[]|string $group group
-     *
-     * @return self
-     */
-    public function groupBy($group)
-    {
-        $this->resetStatement();
-        $groupList = is_array($group) ? array_values($group) : [ $group ];
-        $this->group = new Group($groupList);
+        if (is_string($order)) {
+            $this->order = new Order(array_combine([ $order ], [ Order::ASC ]));
+        } elseif (is_array($order)) {
+            $this->order = new Order(array_filter($order, function ($direction, $column) {
+                $unifiedDirection = strtoupper($direction);
+                return ($unifiedDirection === Order::ASC || $unifiedDirection === Order::DESC) && is_string($column) &&
+                    !empty($column);
+            }, ARRAY_FILTER_USE_BOTH));
+        }
 
         return $this;
     }
@@ -194,26 +220,43 @@ class Query implements QueryInterface
     }
 
     /**
-     * Get query string
+     * To string
      *
      * @return string
      */
-    public function getQueryString()
+    public function toString()
     {
-        $queryString = $this->command->toString() . implode('', array_map(function (TableInterface $table) {
-            return $table->toString();
-        }, $this->tables));
+        $queryString = $this->command->toString();
 
-        if (isset($this->where)) {
-            $queryString .= $this->where->toString();
+        $type = $this->command->getType();
+        $isSelect = $type === CommandInterface::TYPE_SELECT;
+        $isInsert = $type === CommandInterface::TYPE_INSERT;
+        $isUpdate = $type === CommandInterface::TYPE_UPDATE;
+
+        $tables = $isSelect ? $this->tables : array_filter($this->tables, function (TableInterface $table) {
+            return $table->isMain();
+        });
+        if (count($tables) > 0) {
+            $queryString .= implode('', array_map(function (TableInterface $table) {
+                return $table->toString();
+            }, $tables));
         }
-
-        if ($this->command->getType() === CommandInterface::TYPE_SELECT) {
-            if (isset($this->order)) {
-                $queryString .= $this->order->toString();
+        if ($isInsert || $isUpdate) {
+            if (isset($this->set)) {
+                $queryString .= $this->set->toString();
             }
+        }
+        if (!$isInsert) {
+            if (isset($this->where)) {
+                $queryString .= $this->where->toString();
+            }
+        }
+        if ($isSelect) {
             if (isset($this->group)) {
                 $queryString .= $this->group->toString();
+            }
+            if (isset($this->order)) {
+                $queryString .= $this->order->toString();
             }
             if (isset($this->limit)) {
                 $queryString .= $this->limit->toString();
@@ -249,7 +292,7 @@ class Query implements QueryInterface
     public function execute(array $params = null)
     {
         if (!isset($this->statement)) {
-            $this->statement = $this->client->prepare($this->getQueryString());
+            $this->statement = $this->client->prepare($this->toString());
         }
         foreach ($this->params as $name => $type) {
             $pdoType = $this->getPdoType($type);
@@ -260,6 +303,23 @@ class Query implements QueryInterface
         $results = $this->statement->fetchAll(PDO::FETCH_ASSOC);
 
         return $results;
+    }
+
+    /**
+     * Get string list
+     *
+     * @param mixed $values values
+     *
+     * @return string[]
+     */
+    private function getStringList($values)
+    {
+        $valuesList = is_array($values) ? array_values($values) : [ $values ];
+        $stringList = array_filter($valuesList, function ($value) {
+            return is_string($value) && !empty($value);
+        });
+
+        return $stringList;
     }
 
     /**

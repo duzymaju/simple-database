@@ -27,10 +27,17 @@ interface TableInterface extends ToStringInterface
     /**
      * Construct
      *
-     * @param int               $type      type
-     * @param string            $tableName table name
-     * @param string|null       $tableSlug table slug
-     * @param array|string|null $condition condition
+     * @param int         $type      type
+     * @param string      $tableName table name
+     * @param string|null $tableSlug table slug
+     * @param string[]    $condition condition
      */
-    public function __construct($type, $tableName, $tableSlug = null, $condition = null);
+    public function __construct($type, $tableName, $tableSlug = null, array $condition = []);
+
+    /**
+     * Is main
+     *
+     * @return bool
+     */
+    public function isMain();
 }

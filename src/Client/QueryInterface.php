@@ -2,10 +2,12 @@
 
 namespace SimpleDatabase\Client;
 
+use SimpleDatabase\Tool\ToStringInterface;
+
 /**
  * Query interface
  */
-interface QueryInterface
+interface QueryInterface extends ToStringInterface
 {
     /** @var string */
     const PARAM_BOOL = 'bool';
@@ -29,17 +31,17 @@ interface QueryInterface
      * @param int                 $commandType command type
      * @param string              $tableName   table name
      * @param string|null         $tableSlug   table slug
-     * @param array|null          $items       items
+     * @param string[]|string     $items       items
      */
     public function __construct(ConnectionInterface $connection, $commandType, $tableName, $tableSlug = null,
-        array $items = null);
+        $items = []);
 
     /**
      * Join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
@@ -48,9 +50,9 @@ interface QueryInterface
     /**
      * Left join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
@@ -59,9 +61,9 @@ interface QueryInterface
     /**
      * Right join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
@@ -70,22 +72,41 @@ interface QueryInterface
     /**
      * Outer join
      *
-     * @param string       $tableName table name
-     * @param string       $tableSlug table slug
-     * @param array|string $condition condition
+     * @param string          $tableName table name
+     * @param string          $tableSlug table slug
+     * @param string[]|string $condition condition
      *
      * @return self
      */
     public function outerJoin($tableName, $tableSlug, $condition);
 
     /**
+     * Set
+     *
+     * @param string[]|string $set set
+     *
+     * @return self
+     */
+    public function set($set);
+
+    /**
      * Where
      *
-     * @param string|array $where where
+     * @param string[]|string $where where
      *
      * @return self
      */
     public function where($where);
+
+    /**
+     * Group by
+     *
+     * @param string[]|string $group  group
+     * @param string[]|string $having having
+     *
+     * @return self
+     */
+    public function groupBy($group, $having = []);
 
     /**
      * Order by
@@ -95,15 +116,6 @@ interface QueryInterface
      * @return self
      */
     public function orderBy($order);
-
-    /**
-     * Group by
-     *
-     * @param string[]|string $group group
-     *
-     * @return self
-     */
-    public function groupBy($group);
 
     /**
      * Limit
@@ -133,11 +145,4 @@ interface QueryInterface
      * @return array
      */
     public function execute(array $params = null);
-
-    /**
-     * Get query string
-     *
-     * @return string
-     */
-    public function getQueryString();
 }

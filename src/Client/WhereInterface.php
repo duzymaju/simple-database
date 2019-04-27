@@ -12,7 +12,7 @@ interface WhereInterface extends ToStringInterface
     /**
      * Construct
      *
-     * @param string|array $where where
+     * @param string[] $where where
      */
-    public function __construct($where);
+    public function __construct(array $where);
 }
