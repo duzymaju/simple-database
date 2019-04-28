@@ -150,6 +150,20 @@ class Table
     }
 
     /**
+     * Get non-ID fields
+     *
+     * @return Field[]
+     */
+    public function getNonIdFields()
+    {
+        $nonIdFields = array_filter($this->fields, function (Field $field) {
+            return !$field->isId();
+        });
+
+        return $nonIdFields;
+    }
+
+    /**
      * Add field
      *
      * @param string $name   name

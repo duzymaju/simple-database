@@ -2,8 +2,6 @@
 
 namespace SimpleDatabase\Repository;
 
-use ReflectionClass;
-use ReflectionException;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Exception\DatabaseException;
@@ -113,8 +111,9 @@ abstract class BaseRepository
     {
         $query = $this->connection->select('COUNT(*) AS count', $this->table->getName());
 
+        $params = [];
         try {
-            $params = $this->bindParamsWithQuery($query, $conditions);
+            $this->bindParamsWithQuery($query, $conditions, $params);
         } catch (DatabaseException $e) {
             unset($e);
             return 0;
@@ -232,8 +231,9 @@ abstract class BaseRepository
     {
         $query = $this->connection->select('*', $this->table->getName());
 
+        $params = [];
         try {
-            $params = $this->bindParamsWithQuery($query, $conditions);
+            $this->bindParamsWithQuery($query, $conditions, $params);
         } catch (DatabaseException $e) {
             unset($e);
             return [];
@@ -297,6 +297,43 @@ abstract class BaseRepository
     }
 
     /**
+     * Save
+     *
+     * @param ModelInterface $model
+     *
+     * @return self
+     *
+     * @throws RepositoryException
+     */
+    protected function save(ModelInterface $model)
+    {
+        $idFields = $this->table->getIdFields();
+        $usedIdFields = array_filter($idFields, function (Field $idField) use ($model) {
+            $value = $idField->getValueFromModel($model);
+            return isset($value);
+        });
+
+        $params = [];
+        if (count($usedIdFields) === 0) {
+            $query = $this->connection->insert($this->table->getName());
+            $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonIdFields(), $params);
+            $query->set($set);
+        } elseif (count($idFields) === count($usedIdFields)) {
+            $query = $this->connection->update($this->table->getName());
+            $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonIdFields(), $params);
+            $query->set($set);
+            $where = $this->bindModelParamsWithQuery($query, $model, $idFields, $params);
+            $query->where($where);
+        } else {
+            throw new RepositoryException('Model contains invalid values and can not be saved.');
+        }
+
+        $query->execute($params);
+
+        return $this;
+    }
+
+    /**
      * Create model instance
      *
      * @param array $data data
@@ -305,48 +342,36 @@ abstract class BaseRepository
      */
     protected function createModelInstance(array $data)
     {
-        $modelInstance = new $this->modelClass();
+        $model = new $this->modelClass();
         foreach ($this->table->getFields() as $field) {
             if (array_key_exists($field->getDbName(), $data)) {
                 $dbValue = $data[$field->getDbName()];
-                $this->setValue($modelInstance, $field->getName(), $field->getValue($dbValue));
+                $field->setValueToModel($model, $field->getValue($dbValue));
             }
         }
 
-        return $modelInstance;
+        return $model;
     }
 
     /**
-     * Set value
+     * Bind model params with query
      *
-     * @param ModelInterface $model model
-     * @param string         $key   key
-     * @param mixed          $value value
+     * @param QueryInterface $query  query
+     * @param ModelInterface $model  model
+     * @param Field[]        $fields fields
+     * @param string[]       $params params
      *
-     * @return self
-     *
-     * @throws RepositoryException
+     * @return string[]
      */
-    protected function setValue(ModelInterface $model, $key, $value)
+    private function bindModelParamsWithQuery(QueryInterface $query, ModelInterface $model, array $fields, &$params)
     {
-        try {
-            $setterMethod = 'set' . ucfirst($key);
-            if (method_exists($model, $setterMethod)) {
-                $model->$setterMethod($value);
-            } else {
-                if (is_numeric($value)) {
-                    $value = (int) $value;
-                }
-                $modelReflector = new ReflectionClass($model);
-                $property = $modelReflector->getProperty($key);
-                $property->setAccessible(true);
-                $property->setValue($model, $value);
-            }
-        } catch (ReflectionException $e) {
-            throw new RepositoryException(sprintf('There was impossible to set value "%s".', $key), $e->getCode(), $e);
+        $conditions = [];
+        foreach ($fields as $field) {
+            $value = $field->getValueFromModel($model);
+            $conditions[] = $this->bindParamWithQuery($query, $field, $value, $params);
         }
 
-        return $this;
+        return $conditions;
     }
 
     /**
@@ -354,38 +379,49 @@ abstract class BaseRepository
      *
      * @param QueryInterface $query      query
      * @param array          $conditions conditions
-     *
-     * @return array
+     * @param string[]       $params     params
      */
-    private function bindParamsWithQuery(QueryInterface $query, array $conditions)
+    private function bindParamsWithQuery(QueryInterface $query, array $conditions, &$params)
     {
         $where = [];
-        $params = [];
         foreach ($conditions as $key => $value) {
             if (is_array($value) && count($value) === 0) {
                 throw new DatabaseException(sprintf('Param "%s" shouldn\'t be an empty array.', $key));
             }
             $field = $this->table->getField($key);
             if (isset($field)) {
-                $dbName = $this->connection->escape($field->getDbName());
-                if (!$field->isJsonType() && is_array($value)) {
-                    $dbNames = [];
-                    foreach (array_values($value) as $i => $subValue) {
-                        $dbSubName = $dbName . ($i + 1);
-                        $query->bindParam($dbSubName, $field->getDbType($subValue));
-                        $params[$dbSubName] = $field->getDbValue($subValue);
-                        $dbNames[] = $dbSubName;
-                    }
-                    $where[] = $dbName . ' IN (:' . implode(', :', $dbNames) . ')';
-                } else {
-                    $query->bindParam($dbName, $field->getDbType($value));
-                    $params[$dbName] = $field->getDbValue($value);
-                    $where[] = $dbName . ' = :' . $dbName;
-                }
+                $where[] = $this->bindParamWithQuery($query, $field, $value, $params);
             }
         }
         $query->where($where);
+    }
 
-        return $params;
+    /**
+     * Bind param with query
+     *
+     * @param QueryInterface $query  query
+     * @param Field          $field  field
+     * @param mixed          $value  value
+     * @param string[]       $params params
+     *
+     * @return string
+     */
+    private function bindParamWithQuery(QueryInterface $query, Field $field, $value, &$params)
+    {
+        $dbName = $this->connection->escape($field->getDbName());
+        if (!$field->isJsonType() && is_array($value)) {
+            $dbNames = [];
+            foreach (array_values($value) as $i => $subValue) {
+                $dbSubName = $dbName . ($i + 1);
+                $query->bindParam($dbSubName, $field->getDbType($subValue));
+                $params[$dbSubName] = $field->getDbValue($subValue);
+                $dbNames[] = $dbSubName;
+            }
+            return $dbName . ' IN (:' . implode(', :', $dbNames) . ')';
+        } else {
+            $query->bindParam($dbName, $field->getDbType($value));
+            $params[$dbName] = $field->getDbValue($value);
+            return $dbName . ' = :' . $dbName;
+        }
     }
 }

@@ -3,6 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
+use SimpleDatabase\Exception\RepositoryException;
 use SimpleDatabase\Model\ModelInterface;
 use SimpleDatabase\Repository\BaseRepository;
 
@@ -129,16 +130,16 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(1))
             ->method('execute')
             ->with([
-                'floatId' => 3.15,
+                'floatId' => 4.15,
                 'jsonStructure' => '{"a":2}',
                 'jsonAssocStructure' => '{"b":["b1","b2"]}',
             ])
             ->willReturn([
                 [
                     'id' => '3',
-                    'floatId' => '3.15',
+                    'floatId' => '4.15',
                     'stringDbField' => 'abc',
-                    'boolField' => '0', // @TODO: Sprawdzić pola bool, ew. kon!
+                    'boolField' => '0',
                     'jsonStructure' => '{"a":2}',
                     'jsonAssocStructure' => '{"b":["b1","b2"]}',
                 ],
@@ -150,7 +151,7 @@ final class BaseRepositoryTest extends TestCase
         $objectStructure2 = [ 'b' => [ 'b1', 'b2' ] ];
         $repository = new TestRepository($this->connectionMock);
         $results = $repository->getBy([
-            'id2' => 3.15,
+            'id2' => 4.15,
             'jsonStructure' => $objectStructure1,
             'jsonAssocStructure' => $objectStructure2,
         ], [
@@ -159,14 +160,155 @@ final class BaseRepositoryTest extends TestCase
             'Rand',
         ], 10, 5);
 
+        $testModelInstance = $repository->createModelInstance([
+            'id' => '3',
+            'floatId' => '4.15',
+            'stringDbField' => 'abc',
+            'boolField' => '0',
+            'jsonStructure' => '{"a":2}',
+            'jsonAssocStructure' => '{"b":["b1","b2"]}',
+        ]);
+        $this->assertEquals([ $testModelInstance ], $results);
+    }
+
+    /** Test saving new element */
+    public function testSavingNewElement()
+    {
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('insert')
+            ->with('TestTable')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(4))
+            ->method('bindParam')
+            ->withConsecutive(
+                [ 'stringDbField', QueryInterface::PARAM_STRING ],
+                [ 'boolField', QueryInterface::PARAM_BOOL ],
+                [ 'jsonStructure', QueryInterface::PARAM_STRING ],
+                [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ]
+            )
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('set')
+            ->with([
+                'stringDbField = :stringDbField',
+                'boolField = :boolField',
+                'jsonStructure = :jsonStructure',
+                'jsonAssocStructure = :jsonAssocStructure',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('execute')
+            ->with([
+                'stringDbField' => 'abc',
+                'boolField' => false,
+                'jsonStructure' => '{"a":2}',
+                'jsonAssocStructure' => null,
+            ])
+            ->willReturn(null)
+        ;
+
+        $repository = new TestRepository($this->connectionMock);
+        $objectStructure1 = new stdClass();
+        $objectStructure1->a = 2;
         $testModelInstance = new TestModel();
-        $testModelInstance->setId(3);
-        $testModelInstance->setId2(3.15);
         $testModelInstance->setStringField('abc');
         $testModelInstance->setBoolField(false);
         $testModelInstance->setJsonStructure($objectStructure1);
-        $testModelInstance->setJsonAssocStructure($objectStructure2);
-        $this->assertEquals([ $testModelInstance ], $results);
+        $repository->save($testModelInstance);
+    }
+
+    /** Test saving existed element */
+    public function testSavingExistedElement()
+    {
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('update')
+            ->with('TestTable')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(6))
+            ->method('bindParam')
+            ->withConsecutive(
+                [ 'stringDbField', QueryInterface::PARAM_STRING ],
+                [ 'boolField', QueryInterface::PARAM_BOOL ],
+                [ 'jsonStructure', QueryInterface::PARAM_STRING ],
+                [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ],
+                [ 'id', QueryInterface::PARAM_INT ],
+                [ 'floatId', QueryInterface::PARAM_FLOAT ]
+            )
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('set')
+            ->with([
+                'stringDbField = :stringDbField',
+                'boolField = :boolField',
+                'jsonStructure = :jsonStructure',
+                'jsonAssocStructure = :jsonAssocStructure',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('where')
+            ->with([
+                'id = :id',
+                'floatId = :floatId',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('execute')
+            ->with([
+                'id' => 3,
+                'floatId' => 4.15,
+                'stringDbField' => 'abc',
+                'boolField' => false,
+                'jsonStructure' => '{"a":2}',
+                'jsonAssocStructure' => null,
+            ])
+            ->willReturn(null)
+        ;
+
+        $repository = new TestRepository($this->connectionMock);
+        $testModelInstance = $repository->createModelInstance([
+            'id' => '3',
+            'floatId' => '4.15',
+            'stringDbField' => 'abc',
+            'boolField' => '0',
+            'jsonStructure' => '{"a":2}',
+        ]);
+        $repository->save($testModelInstance);
+    }
+
+    /** Test throwing exception during saving element */
+    public function testThrowingExceptionDuringSavingElement()
+    {
+        $repository = new TestRepository($this->connectionMock);
+        $testModelInstance = $repository->createModelInstance([
+            'floatId' => '4.15',
+            'stringDbField' => 'abc',
+            'boolField' => '0',
+            'jsonStructure' => '{"a":2}',
+        ]);
+
+        try {
+            $repository->save($testModelInstance);
+            $this->fail('Unexpected success.');
+        } catch (Exception $exception) {
+            $this->assertTrue($exception instanceof RepositoryException);
+            $this->assertEquals('Model contains invalid values and can not be saved.', $exception->getMessage());
+        }
     }
 }
 
@@ -222,6 +364,16 @@ class TestRepository extends BaseRepository
     {
         return parent::getPaginated($conditions, $order, $page, $pack);
     }
+
+    public function save(ModelInterface $model)
+    {
+        return parent::save($model);
+    }
+
+    public function createModelInstance(array $data)
+    {
+        return parent::createModelInstance($data);
+    }
 }
 
 class TestModel extends ModelInterface
@@ -238,19 +390,9 @@ class TestModel extends ModelInterface
         return $this->id;
     }
 
-    public function setId($id)
-    {
-        $this->id = $id;
-    }
-
     public function getId2()
     {
         return $this->id2;
-    }
-
-    public function setId2($id2)
-    {
-        $this->id2 = $id2;
     }
 
     public function getStringField()

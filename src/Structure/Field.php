@@ -2,7 +2,11 @@
 
 namespace SimpleDatabase\Structure;
 
+use ReflectionClass;
+use ReflectionException;
 use SimpleDatabase\Client\QueryInterface;
+use SimpleDatabase\Exception\RepositoryException;
+use SimpleDatabase\Model\ModelInterface;
 use stdClass;
 
 class Field
@@ -147,10 +151,10 @@ class Field
 
         switch ($this->type) {
             case self::TYPE_BOOL:
-                return (bool) $dbValue;
+                return !in_array($dbValue, [ 'false', 'null', '', '0' ]) || false;
 
             case self::TYPE_FLOAT:
-                return !in_array($dbValue, [ 'false', 'null', '', '0' ]) || false;
+                return (float) $dbValue;
 
             case self::TYPE_INT:
                 return (int) $dbValue;
@@ -177,6 +181,53 @@ class Field
         }
 
         return $value;
+    }
+
+    /**
+     * Get value from model
+     *
+     * @param ModelInterface $model model
+     *
+     * @return mixed
+     */
+    public function getValueFromModel(ModelInterface $model)
+    {
+        $getterMethod = 'get' . ucfirst($this->name);
+        if (!method_exists($model, $getterMethod)) {
+            return null;
+        }
+        $value = $model->$getterMethod();
+
+        return $value;
+    }
+
+    /**
+     * Set value to model
+     *
+     * @param ModelInterface $model model
+     * @param mixed          $value value
+     *
+     * @return self
+     */
+    public function setValueToModel(ModelInterface $model, $value)
+    {
+        try {
+            $setterMethod = 'set' . ucfirst($this->name);
+            if (method_exists($model, $setterMethod)) {
+                $model->$setterMethod($value);
+            } else {
+                $modelReflector = new ReflectionClass($model);
+                $property = $modelReflector->getProperty($this->name);
+                $property->setAccessible(true);
+                $property->setValue($model, $value);
+            }
+        } catch (ReflectionException $e) {
+            throw new RepositoryException(
+                sprintf('There was impossible to set value "%s".', $this->name), $e->getCode(), $e
+            );
+        }
+
+        return $this;
     }
 
     /**
