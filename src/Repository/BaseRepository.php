@@ -334,6 +334,34 @@ abstract class BaseRepository
     }
 
     /**
+     * Delete
+     *
+     * @param ModelInterface $model model
+     *
+     * @return self
+     */
+    protected function delete(ModelInterface $model)
+    {
+        $idFields = $this->table->getIdFields();
+        $usedIdFields = array_filter($idFields, function (Field $idField) use ($model) {
+            $value = $idField->getValueFromModel($model);
+            return isset($value);
+        });
+
+        if (count($idFields) !== count($usedIdFields)) {
+            throw new RepositoryException('Model is not identifiable and can not be deleted.');
+        }
+
+        $params = [];
+        $query = $this->connection->delete($this->table->getName());
+        $where = $this->bindModelParamsWithQuery($query, $model, $idFields, $params);
+        $query->where($where);
+        $query->execute($params);
+
+        return $this;
+    }
+
+    /**
      * Create model instance
      *
      * @param array $data data

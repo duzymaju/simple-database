@@ -310,6 +310,68 @@ final class BaseRepositoryTest extends TestCase
             $this->assertEquals('Model contains invalid values and can not be saved.', $exception->getMessage());
         }
     }
+
+    /** Test deleting existed element */
+    public function testDeletingExistedElement()
+    {
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('delete')
+            ->with('TestTable')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(2))
+            ->method('bindParam')
+            ->withConsecutive(
+                [ 'id', QueryInterface::PARAM_INT ],
+                [ 'floatId', QueryInterface::PARAM_FLOAT ]
+            )
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('where')
+            ->with([
+                'id = :id',
+                'floatId = :floatId',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('execute')
+            ->with([
+                'id' => 3,
+                'floatId' => 4.15,
+            ])
+            ->willReturn(null)
+        ;
+
+        $repository = new TestRepository($this->connectionMock);
+        $testModelInstance = $repository->createModelInstance([
+            'id' => '3',
+            'floatId' => '4.15',
+        ]);
+        $repository->delete($testModelInstance);
+    }
+
+    /** Test throwing exception during deleting element */
+    public function testThrowingExceptionDuringDeletingElement()
+    {
+        $repository = new TestRepository($this->connectionMock);
+        $testModelInstance = $repository->createModelInstance([
+            'floatId' => '4.15',
+        ]);
+
+        try {
+            $repository->delete($testModelInstance);
+            $this->fail('Unexpected success.');
+        } catch (Exception $exception) {
+            $this->assertTrue($exception instanceof RepositoryException);
+            $this->assertEquals('Model is not identifiable and can not be deleted.', $exception->getMessage());
+        }
+    }
 }
 
 class TestRepository extends BaseRepository
@@ -368,6 +430,11 @@ class TestRepository extends BaseRepository
     public function save(ModelInterface $model)
     {
         return parent::save($model);
+    }
+
+    public function delete(ModelInterface $model)
+    {
+        return parent::delete($model);
     }
 
     public function createModelInstance(array $data)
