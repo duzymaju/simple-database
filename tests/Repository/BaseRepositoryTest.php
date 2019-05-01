@@ -160,7 +160,7 @@ final class BaseRepositoryTest extends TestCase
             'Rand',
         ], 10, 5);
 
-        $testModelInstance = $repository->createModelInstance([
+        $testModelInstance = $repository->createModelInstanceFromDb([
             'id' => '3',
             'floatId' => '4.15',
             'stringDbField' => 'abc',
@@ -171,8 +171,8 @@ final class BaseRepositoryTest extends TestCase
         $this->assertEquals([ $testModelInstance ], $results);
     }
 
-    /** Test saving new element */
-    public function testSavingNewElement()
+    /** Test inserting element */
+    public function testInsertingElement()
     {
         $this->connectionMock
             ->expects($this->exactly(1))
@@ -181,9 +181,10 @@ final class BaseRepositoryTest extends TestCase
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
-            ->expects($this->exactly(4))
+            ->expects($this->exactly(5))
             ->method('bindParam')
             ->withConsecutive(
+                [ 'floatId', QueryInterface::PARAM_FLOAT ],
                 [ 'stringDbField', QueryInterface::PARAM_STRING ],
                 [ 'boolField', QueryInterface::PARAM_BOOL ],
                 [ 'jsonStructure', QueryInterface::PARAM_STRING ],
@@ -195,6 +196,7 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(1))
             ->method('set')
             ->with([
+                'floatId = :floatId',
                 'stringDbField = :stringDbField',
                 'boolField = :boolField',
                 'jsonStructure = :jsonStructure',
@@ -206,6 +208,7 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(1))
             ->method('execute')
             ->with([
+                'floatId' => 4.15,
                 'stringDbField' => 'abc',
                 'boolField' => false,
                 'jsonStructure' => '{"a":2}',
@@ -218,14 +221,15 @@ final class BaseRepositoryTest extends TestCase
         $objectStructure1 = new stdClass();
         $objectStructure1->a = 2;
         $testModelInstance = new TestModel();
+        $testModelInstance->setId2(4.15);
         $testModelInstance->setStringField('abc');
         $testModelInstance->setBoolField(false);
         $testModelInstance->setJsonStructure($objectStructure1);
-        $repository->save($testModelInstance);
+        $repository->insert($testModelInstance);
     }
 
-    /** Test saving existed element */
-    public function testSavingExistedElement()
+    /** Test updating element */
+    public function testUpdatingElement()
     {
         $this->connectionMock
             ->expects($this->exactly(1))
@@ -234,9 +238,10 @@ final class BaseRepositoryTest extends TestCase
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
-            ->expects($this->exactly(6))
+            ->expects($this->exactly(7))
             ->method('bindParam')
             ->withConsecutive(
+                [ 'floatId', QueryInterface::PARAM_FLOAT ],
                 [ 'stringDbField', QueryInterface::PARAM_STRING ],
                 [ 'boolField', QueryInterface::PARAM_BOOL ],
                 [ 'jsonStructure', QueryInterface::PARAM_STRING ],
@@ -250,6 +255,7 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(1))
             ->method('set')
             ->with([
+                'floatId = :floatId',
                 'stringDbField = :stringDbField',
                 'boolField = :boolField',
                 'jsonStructure = :jsonStructure',
@@ -281,34 +287,14 @@ final class BaseRepositoryTest extends TestCase
         ;
 
         $repository = new TestRepository($this->connectionMock);
-        $testModelInstance = $repository->createModelInstance([
+        $testModelInstance = $repository->createModelInstanceFromDb([
             'id' => '3',
             'floatId' => '4.15',
             'stringDbField' => 'abc',
             'boolField' => '0',
             'jsonStructure' => '{"a":2}',
         ]);
-        $repository->save($testModelInstance);
-    }
-
-    /** Test throwing exception during saving element */
-    public function testThrowingExceptionDuringSavingElement()
-    {
-        $repository = new TestRepository($this->connectionMock);
-        $testModelInstance = $repository->createModelInstance([
-            'floatId' => '4.15',
-            'stringDbField' => 'abc',
-            'boolField' => '0',
-            'jsonStructure' => '{"a":2}',
-        ]);
-
-        try {
-            $repository->save($testModelInstance);
-            $this->fail('Unexpected success.');
-        } catch (Exception $exception) {
-            $this->assertTrue($exception instanceof RepositoryException);
-            $this->assertEquals('Model contains invalid values and can not be saved.', $exception->getMessage());
-        }
+        $repository->update($testModelInstance);
     }
 
     /** Test deleting existed element */
@@ -349,7 +335,7 @@ final class BaseRepositoryTest extends TestCase
         ;
 
         $repository = new TestRepository($this->connectionMock);
-        $testModelInstance = $repository->createModelInstance([
+        $testModelInstance = $repository->createModelInstanceFromDb([
             'id' => '3',
             'floatId' => '4.15',
         ]);
@@ -360,16 +346,17 @@ final class BaseRepositoryTest extends TestCase
     public function testThrowingExceptionDuringDeletingElement()
     {
         $repository = new TestRepository($this->connectionMock);
-        $testModelInstance = $repository->createModelInstance([
-            'floatId' => '4.15',
-        ]);
+        $testModelInstance = new TestModel();
+        $testModelInstance->setStringField('abc');
 
         try {
             $repository->delete($testModelInstance);
             $this->fail('Unexpected success.');
         } catch (Exception $exception) {
             $this->assertTrue($exception instanceof RepositoryException);
-            $this->assertEquals('Model is not identifiable and can not be deleted.', $exception->getMessage());
+            $this->assertEquals(
+                'Model instance hasn\'t been created from DB and can not be deleted.', $exception->getMessage()
+            );
         }
     }
 }
@@ -383,7 +370,7 @@ class TestRepository extends BaseRepository
         $this->setModelClass('TestModel');
         $this
             ->setStructure('TestTable')
-            ->addInt('id', null, true)
+            ->addInt('id', null, true, true)
             ->addFloat('id2', 'floatId', true)
             ->addString('stringField', 'stringDbField')
             ->addBool('boolField')
@@ -432,14 +419,24 @@ class TestRepository extends BaseRepository
         return parent::save($model);
     }
 
+    public function insert(ModelInterface $model)
+    {
+        return parent::insert($model);
+    }
+
+    public function update(ModelInterface $model)
+    {
+        return parent::update($model);
+    }
+
     public function delete(ModelInterface $model)
     {
         return parent::delete($model);
     }
 
-    public function createModelInstance(array $data)
+    public function createModelInstanceFromDb(array $data)
     {
-        return parent::createModelInstance($data);
+        return parent::createModelInstanceFromDb($data);
     }
 }
 
@@ -460,6 +457,11 @@ class TestModel extends ModelInterface
     public function getId2()
     {
         return $this->id2;
+    }
+
+    public function setId2($id2)
+    {
+        $this->id2 = $id2;
     }
 
     public function getStringField()

@@ -10,6 +10,9 @@ class Table
     /** @var Field[] */
     private $fields = [];
 
+    /** @var Field|null */
+    private $autoIncrementedField;
+
     /**
      * Construct
      *
@@ -47,15 +50,21 @@ class Table
     /**
      * Add int
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
-     * @param bool   $isId   is ID
+     * @param string $name              name
+     * @param null   $dbName            DB name
+     * @param bool   $isId              is ID
+     * @param bool   $isAutoIncremented is auto incremented
      *
      * @return self
      */
-    public function addInt($name, $dbName = null, $isId = false)
+    public function addInt($name, $dbName = null, $isId = false, $isAutoIncremented = false)
     {
-        return $this->addField($name, Field::TYPE_INT, $dbName, $isId);
+        $this->addField($name, Field::TYPE_INT, $dbName, $isId || $isAutoIncremented);
+        if ($isAutoIncremented) {
+            $this->autoIncrementedField = $this->getField($name);
+        }
+
+        return $this;
     }
 
     /**
@@ -150,17 +159,27 @@ class Table
     }
 
     /**
-     * Get non-ID fields
+     * Get auto incremented field
+     *
+     * @return Field|null
+     */
+    public function getAutoIncrementedField()
+    {
+        return $this->autoIncrementedField;
+    }
+
+    /**
+     * Get non auto incremented fields
      *
      * @return Field[]
      */
-    public function getNonIdFields()
+    public function getNonAutoIncrementedFields()
     {
-        $nonIdFields = array_filter($this->fields, function (Field $field) {
-            return !$field->isId();
+        $nonAutoIncrementedFields = array_filter($this->fields, function (Field $field) {
+            return $field !== $this->autoIncrementedField;
         });
 
-        return $nonIdFields;
+        return $nonAutoIncrementedFields;
     }
 
     /**

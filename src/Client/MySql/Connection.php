@@ -159,6 +159,18 @@ class Connection implements ConnectionInterface
     }
 
     /**
+     * Get last insert ID
+     *
+     * @return int
+     */
+    public function getLastInsertId()
+    {
+        $id = $this->client->lastInsertId();
+
+        return is_numeric($id) ? (int) $id : 0;
+    }
+
+    /**
      * Get client
      *
      * @return PDO

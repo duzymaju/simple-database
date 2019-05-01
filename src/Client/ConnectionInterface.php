@@ -82,6 +82,13 @@ interface ConnectionInterface
     public function rollBack();
 
     /**
+     * Get last insert ID
+     *
+     * @return int
+     */
+    public function getLastInsertId();
+
+    /**
      * Get client
      *
      * @return mixed

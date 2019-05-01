@@ -208,6 +208,8 @@ class Field
      * @param mixed          $value value
      *
      * @return self
+     *
+     * @throws RepositoryException
      */
     public function setValueToModel(ModelInterface $model, $value)
     {

@@ -23,6 +23,9 @@ abstract class BaseRepository
     /** @var Table|null */
     private $table;
 
+    /** @var ModelInterface[] */
+    private $dbModelInstances = [];
+
     /** @var ConnectionInterface */
     protected $connection;
 
@@ -262,7 +265,7 @@ abstract class BaseRepository
         $results = $query->execute($params);
         $items = [];
         foreach ($results as $result) {
-            $items[] = $this->createModelInstance($result);
+            $items[] = $this->createModelInstanceFromDb($result);
         }
 
         return $items;
@@ -301,33 +304,58 @@ abstract class BaseRepository
      *
      * @param ModelInterface $model
      *
-     * @return self
-     *
-     * @throws RepositoryException
+     * @return ModelInterface
      */
     protected function save(ModelInterface $model)
     {
-        $idFields = $this->table->getIdFields();
-        $usedIdFields = array_filter($idFields, function (Field $idField) use ($model) {
-            $value = $idField->getValueFromModel($model);
-            return isset($value);
-        });
-
-        $params = [];
-        if (count($usedIdFields) === 0) {
-            $query = $this->connection->insert($this->table->getName());
-            $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonIdFields(), $params);
-            $query->set($set);
-        } elseif (count($idFields) === count($usedIdFields)) {
-            $query = $this->connection->update($this->table->getName());
-            $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonIdFields(), $params);
-            $query->set($set);
-            $where = $this->bindModelParamsWithQuery($query, $model, $idFields, $params);
-            $query->where($where);
-        } else {
-            throw new RepositoryException('Model contains invalid values and can not be saved.');
+        if ($this->isDbModelInstance($model)) {
+            $this->update($model);
+            return $model;
         }
 
+        $id = $this->insert($model);
+        $conditions = [];
+        $autoIncrementField = $this->table->getAutoIncrementedField();
+        foreach ($this->table->getIdFields() as $field) {
+            $conditions[$field->getName()] = $field === $autoIncrementField ? $id : $field->getValueFromModel($model);
+        }
+
+        return $this->getOneBy($conditions);
+    }
+
+    /**
+     * Insert
+     *
+     * @param ModelInterface $model
+     *
+     * @return int
+     */
+    protected function insert(ModelInterface $model)
+    {
+        $params = [];
+        $query = $this->connection->insert($this->table->getName());
+        $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonAutoIncrementedFields(), $params);
+        $query->set($set);
+        $query->execute($params);
+
+        return $this->connection->getLastInsertId();
+    }
+
+    /**
+     * Update
+     *
+     * @param ModelInterface $model
+     *
+     * @return self
+     */
+    protected function update(ModelInterface $model)
+    {
+        $params = [];
+        $query = $this->connection->update($this->table->getName());
+        $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonAutoIncrementedFields(), $params);
+        $query->set($set);
+        $where = $this->bindModelParamsWithQuery($query, $model, $this->table->getIdFields(), $params);
+        $query->where($where);
         $query->execute($params);
 
         return $this;
@@ -342,19 +370,13 @@ abstract class BaseRepository
      */
     protected function delete(ModelInterface $model)
     {
-        $idFields = $this->table->getIdFields();
-        $usedIdFields = array_filter($idFields, function (Field $idField) use ($model) {
-            $value = $idField->getValueFromModel($model);
-            return isset($value);
-        });
-
-        if (count($idFields) !== count($usedIdFields)) {
-            throw new RepositoryException('Model is not identifiable and can not be deleted.');
+        if (!$this->isDbModelInstance($model)) {
+            throw new RepositoryException('Model instance hasn\'t been created from DB and can not be deleted.');
         }
 
         $params = [];
         $query = $this->connection->delete($this->table->getName());
-        $where = $this->bindModelParamsWithQuery($query, $model, $idFields, $params);
+        $where = $this->bindModelParamsWithQuery($query, $model, $this->table->getIdFields(), $params);
         $query->where($where);
         $query->execute($params);
 
@@ -362,13 +384,13 @@ abstract class BaseRepository
     }
 
     /**
-     * Create model instance
+     * Create model instance from DB
      *
      * @param array $data data
      *
      * @return mixed
      */
-    protected function createModelInstance(array $data)
+    protected function createModelInstanceFromDb(array $data)
     {
         $model = new $this->modelClass();
         foreach ($this->table->getFields() as $field) {
@@ -377,8 +399,27 @@ abstract class BaseRepository
                 $field->setValueToModel($model, $field->getValue($dbValue));
             }
         }
+        $this->dbModelInstances[] = $model;
 
         return $model;
+    }
+
+    /**
+     * Is DB model instance
+     *
+     * @param ModelInterface $model model
+     *
+     * @return bool
+     */
+    protected function isDbModelInstance(ModelInterface $model)
+    {
+        foreach ($this->dbModelInstances as $dbModelInstance) {
+            if ($dbModelInstance === $model) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
