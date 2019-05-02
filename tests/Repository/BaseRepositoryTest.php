@@ -216,6 +216,11 @@ final class BaseRepositoryTest extends TestCase
             ])
             ->willReturn(null)
         ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('getLastInsertId')
+            ->willReturn(3)
+        ;
 
         $repository = new TestRepository($this->connectionMock);
         $objectStructure1 = new stdClass();
@@ -225,7 +230,9 @@ final class BaseRepositoryTest extends TestCase
         $testModelInstance->setStringField('abc');
         $testModelInstance->setBoolField(false);
         $testModelInstance->setJsonStructure($objectStructure1);
-        $repository->insert($testModelInstance);
+        $id = $repository->insert($testModelInstance);
+
+        $this->assertEquals(3, $id);
     }
 
     /** Test updating element */
@@ -297,8 +304,126 @@ final class BaseRepositoryTest extends TestCase
         $repository->update($testModelInstance);
     }
 
-    /** Test deleting existed element */
-    public function testDeletingExistedElement()
+    /** Test saving new element and returning it */
+    public function testSavingNewElementAndReturningIt()
+    {
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('insert')
+            ->with('TestTable')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(5))
+            ->method('bindParam')
+            ->withConsecutive(
+                [ 'floatId', QueryInterface::PARAM_FLOAT ],
+                [ 'stringDbField', QueryInterface::PARAM_STRING ],
+                [ 'boolField', QueryInterface::PARAM_BOOL ],
+                [ 'jsonStructure', QueryInterface::PARAM_STRING ],
+                [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ]
+            )
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('set')
+            ->with([
+                'floatId = :floatId',
+                'stringDbField = :stringDbField',
+                'boolField = :boolField',
+                'jsonStructure = :jsonStructure',
+                'jsonAssocStructure = :jsonAssocStructure',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('execute')
+            ->with([
+                'floatId' => 4.15,
+                'stringDbField' => 'abc',
+                'boolField' => false,
+                'jsonStructure' => '{"a":2}',
+                'jsonAssocStructure' => null,
+            ])
+            ->willReturn(null)
+        ;
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('getLastInsertId')
+            ->willReturn(3)
+        ;
+
+        $selectQueryMock = $this->createMock(QueryInterface::class);
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('select')
+            ->with('*', 'TestTable')
+            ->willReturn($selectQueryMock)
+        ;
+        $selectQueryMock
+            ->expects($this->exactly(2))
+            ->method('bindParam')
+            ->withConsecutive(
+                [ 'id', QueryInterface::PARAM_INT ],
+                [ 'floatId', QueryInterface::PARAM_FLOAT ]
+            )
+            ->willReturn($selectQueryMock)
+        ;
+        $selectQueryMock
+            ->expects($this->exactly(1))
+            ->method('where')
+            ->with([
+                'id = :id',
+                'floatId = :floatId',
+            ])
+            ->willReturn($selectQueryMock)
+        ;
+        $selectQueryMock
+            ->expects($this->exactly(1))
+            ->method('limit')
+            ->with(1, 0)
+            ->willReturn($selectQueryMock)
+        ;
+        $selectQueryMock
+            ->expects($this->exactly(1))
+            ->method('execute')
+            ->with([
+                'id' => 3,
+                'floatId' => 4.15,
+            ])
+            ->willReturn([
+                [
+                    'id' => 3,
+                    'floatId' => 4.15,
+                    'stringDbField' => 'abc',
+                    'boolField' => false,
+                    'jsonStructure' => '{"a":2}',
+                    'jsonAssocStructure' => null,
+                ],
+            ])
+        ;
+
+        $repository = new TestRepository($this->connectionMock);
+        $objectStructure1 = new stdClass();
+        $objectStructure1->a = 2;
+        $testModelInstance = new TestModel();
+        $testModelInstance->setId2(4.15);
+        $testModelInstance->setStringField('abc');
+        $testModelInstance->setBoolField(false);
+        $testModelInstance->setJsonStructure($objectStructure1);
+        /** @var TestModel $insertedModelInstance */
+        $insertedModelInstance = $repository->save($testModelInstance);
+
+        $this->assertEquals(3, $insertedModelInstance->getId());
+        $this->assertEquals(4.15, $insertedModelInstance->getId2());
+        $this->assertEquals('abc', $insertedModelInstance->getStringField());
+        $this->assertEquals(false, $insertedModelInstance->getBoolField());
+    }
+
+    /** Test deleting element */
+    public function testDeletingElement()
     {
         $this->connectionMock
             ->expects($this->exactly(1))
