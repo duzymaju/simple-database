@@ -2,9 +2,13 @@
 
 namespace SimpleDatabase\Structure;
 
+use DateTime;
+use DateTimeZone;
+use Exception;
 use ReflectionClass;
 use ReflectionException;
 use SimpleDatabase\Client\QueryInterface;
+use SimpleDatabase\Exception\DataException;
 use SimpleDatabase\Exception\RepositoryException;
 use SimpleDatabase\Model\ModelInterface;
 use stdClass;
@@ -13,6 +17,12 @@ class Field
 {
     /** @var string */
     const TYPE_BOOL = 'bool';
+
+    /** @var string */
+    const TYPE_DATE_TIME = 'date-time';
+
+    /** @var string */
+    const TYPE_DATE_TIME_TIMESTAMP = 'date-time-timestamp';
 
     /** @var string */
     const TYPE_FLOAT = 'float';
@@ -120,6 +130,12 @@ class Field
             case self::TYPE_BOOL:
                 return QueryInterface::PARAM_BOOL;
 
+            case self::TYPE_DATE_TIME:
+                return QueryInterface::PARAM_STRING;
+
+            case self::TYPE_DATE_TIME_TIMESTAMP:
+                return QueryInterface::PARAM_INT;
+
             case self::TYPE_FLOAT:
                 return QueryInterface::PARAM_FLOAT;
 
@@ -138,6 +154,8 @@ class Field
      * @param mixed $dbValue DB value
      *
      * @return mixed
+     *
+     * @throws DataException
      */
     public function getValue($dbValue)
     {
@@ -152,6 +170,26 @@ class Field
         switch ($this->type) {
             case self::TYPE_BOOL:
                 return !in_array($dbValue, [ 'false', 'null', '', '0' ]) || false;
+
+            case self::TYPE_DATE_TIME:
+                try {
+                    return new DateTime($dbValue);
+                } catch (Exception $exception) {
+                    throw new DataException(
+                        sprintf('String "%s" in "%s" field can not be converted into a date.', $dbValue, $this->name),
+                        $exception->getCode(), $exception
+                    );
+                }
+
+            case self::TYPE_DATE_TIME_TIMESTAMP:
+                try {
+                    return new DateTime('@' . $dbValue, new DateTimeZone(date_default_timezone_get()));
+                } catch (Exception $exception) {
+                    throw new DataException(
+                        sprintf('Timestamp "%s" in "%s" field can not be converted into date.', $dbValue, $this->name),
+                        $exception->getCode(), $exception
+                    );
+                }
 
             case self::TYPE_FLOAT:
                 return (float) $dbValue;
@@ -178,6 +216,10 @@ class Field
     {
         if ($this->isJsonType() && ($value instanceof stdClass || is_array($value))) {
             return json_encode($value);
+        } elseif ($this->type === self::TYPE_DATE_TIME && $value instanceof DateTime) {
+            return $value->format(DateTime::ISO8601);
+        } elseif ($this->type === self::TYPE_DATE_TIME_TIMESTAMP && $value instanceof DateTime) {
+            return $value->getTimestamp();
         }
 
         return $value;

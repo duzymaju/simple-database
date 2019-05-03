@@ -27,6 +27,8 @@ final class BaseRepositoryTest extends TestCase
                 return $text;
             })
         ;
+
+        date_default_timezone_set('Europe/Warsaw');
     }
 
     /** Test counting by */
@@ -91,12 +93,14 @@ final class BaseRepositoryTest extends TestCase
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
-            ->expects($this->exactly(3))
+            ->expects($this->exactly(5))
             ->method('bindParam')
             ->withConsecutive(
                 [ 'floatId', QueryInterface::PARAM_FLOAT ],
                 [ 'jsonStructure', QueryInterface::PARAM_STRING ],
-                [ 'jsonAssocStructure', QueryInterface::PARAM_STRING ]
+                [ 'jsonAssocStructure', QueryInterface::PARAM_STRING ],
+                [ 'time', QueryInterface::PARAM_STRING ],
+                [ 'timestamp', QueryInterface::PARAM_INT ]
             )
             ->willReturn($this->queryMock)
         ;
@@ -107,6 +111,8 @@ final class BaseRepositoryTest extends TestCase
                 'floatId = :floatId',
                 'jsonStructure = :jsonStructure',
                 'jsonAssocStructure = :jsonAssocStructure',
+                'time = :time',
+                'timestamp = :timestamp',
             ])
             ->willReturn($this->queryMock)
         ;
@@ -133,6 +139,8 @@ final class BaseRepositoryTest extends TestCase
                 'floatId' => 4.15,
                 'jsonStructure' => '{"a":2}',
                 'jsonAssocStructure' => '{"b":["b1","b2"]}',
+                'time' => '2019-04-29T12:34:56+0200',
+                'timestamp' => '1556620496',
             ])
             ->willReturn([
                 [
@@ -142,6 +150,8 @@ final class BaseRepositoryTest extends TestCase
                     'boolField' => '0',
                     'jsonStructure' => '{"a":2}',
                     'jsonAssocStructure' => '{"b":["b1","b2"]}',
+                    'time' => '2019-04-29T12:34:56+0200',
+                    'timestamp' => '1556620496',
                 ],
             ])
         ;
@@ -154,6 +164,8 @@ final class BaseRepositoryTest extends TestCase
             'id2' => 4.15,
             'jsonStructure' => $objectStructure1,
             'jsonAssocStructure' => $objectStructure2,
+            'time' => new DateTime('2019-04-29T12:34:56+0200'),
+            'time2' => new DateTime('2019-04-30T12:34:56+0200'),
         ], [
             'id' => 'ASC',
             'stringField' => 'desc',
@@ -167,6 +179,8 @@ final class BaseRepositoryTest extends TestCase
             'boolField' => '0',
             'jsonStructure' => '{"a":2}',
             'jsonAssocStructure' => '{"b":["b1","b2"]}',
+            'time' => '2019-04-29T12:34:56+0200',
+            'timestamp' => '1556620496',
         ]);
         $this->assertEquals([ $testModelInstance ], $results);
     }
@@ -181,14 +195,16 @@ final class BaseRepositoryTest extends TestCase
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
-            ->expects($this->exactly(5))
+            ->expects($this->exactly(7))
             ->method('bindParam')
             ->withConsecutive(
                 [ 'floatId', QueryInterface::PARAM_FLOAT ],
                 [ 'stringDbField', QueryInterface::PARAM_STRING ],
                 [ 'boolField', QueryInterface::PARAM_BOOL ],
                 [ 'jsonStructure', QueryInterface::PARAM_STRING ],
-                [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ]
+                [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ],
+                [ 'time', QueryInterface::PARAM_NULL ],
+                [ 'timestamp', QueryInterface::PARAM_NULL ]
             )
             ->willReturn($this->queryMock)
         ;
@@ -201,6 +217,8 @@ final class BaseRepositoryTest extends TestCase
                 'boolField = :boolField',
                 'jsonStructure = :jsonStructure',
                 'jsonAssocStructure = :jsonAssocStructure',
+                'time = :time',
+                'timestamp = :timestamp',
             ])
             ->willReturn($this->queryMock)
         ;
@@ -213,10 +231,12 @@ final class BaseRepositoryTest extends TestCase
                 'boolField' => false,
                 'jsonStructure' => '{"a":2}',
                 'jsonAssocStructure' => null,
+                'time' => null,
+                'timestamp' => null,
             ])
             ->willReturn(null)
         ;
-        $this->queryMock
+        $this->connectionMock
             ->expects($this->exactly(1))
             ->method('getLastInsertId')
             ->willReturn(3)
@@ -245,7 +265,7 @@ final class BaseRepositoryTest extends TestCase
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
-            ->expects($this->exactly(7))
+            ->expects($this->exactly(9))
             ->method('bindParam')
             ->withConsecutive(
                 [ 'floatId', QueryInterface::PARAM_FLOAT ],
@@ -253,6 +273,8 @@ final class BaseRepositoryTest extends TestCase
                 [ 'boolField', QueryInterface::PARAM_BOOL ],
                 [ 'jsonStructure', QueryInterface::PARAM_STRING ],
                 [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ],
+                [ 'time', QueryInterface::PARAM_NULL ],
+                [ 'timestamp', QueryInterface::PARAM_NULL ],
                 [ 'id', QueryInterface::PARAM_INT ],
                 [ 'floatId', QueryInterface::PARAM_FLOAT ]
             )
@@ -267,6 +289,8 @@ final class BaseRepositoryTest extends TestCase
                 'boolField = :boolField',
                 'jsonStructure = :jsonStructure',
                 'jsonAssocStructure = :jsonAssocStructure',
+                'time = :time',
+                'timestamp = :timestamp',
             ])
             ->willReturn($this->queryMock)
         ;
@@ -289,6 +313,8 @@ final class BaseRepositoryTest extends TestCase
                 'boolField' => false,
                 'jsonStructure' => '{"a":2}',
                 'jsonAssocStructure' => null,
+                'time' => null,
+                'timestamp' => null,
             ])
             ->willReturn(null)
         ;
@@ -314,14 +340,16 @@ final class BaseRepositoryTest extends TestCase
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
-            ->expects($this->exactly(5))
+            ->expects($this->exactly(7))
             ->method('bindParam')
             ->withConsecutive(
                 [ 'floatId', QueryInterface::PARAM_FLOAT ],
                 [ 'stringDbField', QueryInterface::PARAM_STRING ],
                 [ 'boolField', QueryInterface::PARAM_BOOL ],
                 [ 'jsonStructure', QueryInterface::PARAM_STRING ],
-                [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ]
+                [ 'jsonAssocStructure', QueryInterface::PARAM_NULL ],
+                [ 'time', QueryInterface::PARAM_NULL ],
+                [ 'timestamp', QueryInterface::PARAM_NULL ]
             )
             ->willReturn($this->queryMock)
         ;
@@ -334,6 +362,8 @@ final class BaseRepositoryTest extends TestCase
                 'boolField = :boolField',
                 'jsonStructure = :jsonStructure',
                 'jsonAssocStructure = :jsonAssocStructure',
+                'time = :time',
+                'timestamp = :timestamp',
             ])
             ->willReturn($this->queryMock)
         ;
@@ -346,6 +376,8 @@ final class BaseRepositoryTest extends TestCase
                 'boolField' => false,
                 'jsonStructure' => '{"a":2}',
                 'jsonAssocStructure' => null,
+                'time' => null,
+                'timestamp' => null,
             ])
             ->willReturn(null)
         ;
@@ -401,6 +433,8 @@ final class BaseRepositoryTest extends TestCase
                     'boolField' => false,
                     'jsonStructure' => '{"a":2}',
                     'jsonAssocStructure' => null,
+                    'time' => null,
+                    'timestamp' => null,
                 ],
             ])
         ;
@@ -501,6 +535,8 @@ class TestRepository extends BaseRepository
             ->addBool('boolField')
             ->addJson('jsonStructure')
             ->addJsonAssoc('jsonAssocStructure')
+            ->addDateTime('time')
+            ->addDateTimeTimestamp('time2', 'timestamp')
         ;
     }
 
@@ -573,6 +609,8 @@ class TestModel extends ModelInterface
     private $boolField;
     private $jsonStructure;
     private $jsonAssocStructure;
+    private $time;
+    private $time2;
 
     public function getId()
     {
@@ -627,5 +665,25 @@ class TestModel extends ModelInterface
     public function setJsonAssocStructure($jsonAssocStructure)
     {
         $this->jsonAssocStructure = $jsonAssocStructure;
+    }
+
+    public function getTime()
+    {
+        return $this->time;
+    }
+
+    public function setTime($time)
+    {
+        $this->time = $time;
+    }
+
+    public function getTime2()
+    {
+        return $this->time2;
+    }
+
+    public function setTime2($time2)
+    {
+        $this->time2 = $time2;
     }
 }

@@ -47,9 +47,10 @@ class Connection implements ConnectionInterface
             ];
 
             $this->client = new PDO($dsn, $user, $password, $options);
-        } catch (Exception $e) {
+        } catch (Exception $exception) {
             throw new DatabaseException(
-                sprintf('Error occurred during connection trial: %s', $e->getMessage()), $e->getCode(), $e
+                sprintf('Error occurred during connection trial: %s', $exception->getMessage()), $exception->getCode(),
+                $exception
             );
         }
     }

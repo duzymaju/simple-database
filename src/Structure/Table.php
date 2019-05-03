@@ -95,6 +95,32 @@ class Table
     }
 
     /**
+     * Add date time
+     *
+     * @param string $name   name
+     * @param null   $dbName DB name
+     *
+     * @return self
+     */
+    public function addDateTime($name, $dbName = null)
+    {
+        return $this->addField($name, Field::TYPE_DATE_TIME, $dbName);
+    }
+
+    /**
+     * Add date time timestamp
+     *
+     * @param string $name   name
+     * @param null   $dbName DB name
+     *
+     * @return self
+     */
+    public function addDateTimeTimestamp($name, $dbName = null)
+    {
+        return $this->addField($name, Field::TYPE_DATE_TIME_TIMESTAMP, $dbName);
+    }
+
+    /**
      * Add JSON
      *
      * @param string $name   name
