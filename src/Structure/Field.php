@@ -40,6 +40,9 @@ class Field
     const TYPE_STRING = 'string';
 
     /** @var string */
+    const DATE_TIME_FORMAT = 'Y-m-d H:i:s';
+
+    /** @var string */
     private $name;
 
     /** @var string */
@@ -217,7 +220,7 @@ class Field
         if ($this->isJsonType() && ($value instanceof stdClass || is_array($value))) {
             return json_encode($value);
         } elseif ($this->type === self::TYPE_DATE_TIME && $value instanceof DateTime) {
-            return $value->format(DateTime::ISO8601);
+            return $value->format(self::DATE_TIME_FORMAT);
         } elseif ($this->type === self::TYPE_DATE_TIME_TIMESTAMP && $value instanceof DateTime) {
             return $value->getTimestamp();
         }

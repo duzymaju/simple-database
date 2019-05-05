@@ -13,6 +13,7 @@ use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Client\SetInterface;
 use SimpleDatabase\Client\TableInterface;
 use SimpleDatabase\Client\WhereInterface;
+use SimpleDatabase\Exception\DataException;
 
 /**
  * Class Query
@@ -287,10 +288,19 @@ class Query implements QueryInterface
      *
      * @param array|null $params params
      *
-     * @return array
+     * @return array|null
+     *
+     * @throws DataException
      */
     public function execute(array $params = null)
     {
+        $paramNames = array_keys($this->params);
+        $valueNames = array_keys($params);
+        $namesCount = count($paramNames);
+        if ($namesCount !== count($valueNames) || $namesCount !== count(array_intersect($paramNames, $valueNames))) {
+            throw new DataException('Params should be equal to declared before.');
+        }
+
         if (!isset($this->statement)) {
             $this->statement = $this->client->prepare($this->toString());
         }
@@ -300,7 +310,9 @@ class Query implements QueryInterface
                 $this->statement->bindValue($name, $params[$name], $pdoType);
             }
         }
-        $results = $this->statement->fetchAll(PDO::FETCH_ASSOC);
+        $this->statement->execute();
+        $results = $this->command->getType() === Command::TYPE_SELECT ?
+            $this->statement->fetchAll(PDO::FETCH_ASSOC) : null;
 
         return $results;
     }

@@ -142,7 +142,7 @@ interface QueryInterface extends ToStringInterface
      *
      * @param array|null $params params
      *
-     * @return array
+     * @return array|null
      */
     public function execute(array $params = null);
 }

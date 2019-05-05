@@ -493,19 +493,20 @@ abstract class BaseRepository
     private function bindParamWithQuery(QueryInterface $query, Field $field, $value, &$params)
     {
         $dbName = $this->connection->escape($field->getDbName());
+        $queryName = ':' . $dbName;
         if (!$field->isJsonType() && is_array($value)) {
-            $dbNames = [];
+            $queryNames = [];
             foreach (array_values($value) as $i => $subValue) {
-                $dbSubName = $dbName . ($i + 1);
-                $query->bindParam($dbSubName, $field->getDbType($subValue));
-                $params[$dbSubName] = $field->getDbValue($subValue);
-                $dbNames[] = $dbSubName;
+                $querySubName = $queryName . ($i + 1);
+                $query->bindParam($querySubName, $field->getDbType($subValue));
+                $params[$querySubName] = $field->getDbValue($subValue);
+                $queryNames[] = $querySubName;
             }
-            return $dbName . ' IN (:' . implode(', :', $dbNames) . ')';
+            return $dbName . ' IN (' . implode(', ', $queryNames) . ')';
         } else {
-            $query->bindParam($dbName, $field->getDbType($value));
-            $params[$dbName] = $field->getDbValue($value);
-            return $dbName . ' = :' . $dbName;
+            $query->bindParam($queryName, $field->getDbType($value));
+            $params[$queryName] = $field->getDbValue($value);
+            return $dbName . ' = ' . $queryName;
         }
     }
 }
