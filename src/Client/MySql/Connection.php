@@ -2,6 +2,8 @@
 
 namespace SimpleDatabase\Client\MySql;
 
+use DateTime;
+use DateTimeZone;
 use Exception;
 use PDO;
 use SimpleDatabase\Client\CommandInterface;
@@ -47,6 +49,7 @@ class Connection implements ConnectionInterface
             ];
 
             $this->client = new PDO($dsn, $user, $password, $options);
+            $this->client->query(sprintf('SET time_zone = "%s"', $this->getOffsetString()));
         } catch (Exception $exception) {
             throw new DatabaseException(
                 sprintf('Error occurred during connection trial: %s', $exception->getMessage()), $exception->getCode(),
@@ -207,5 +210,26 @@ class Connection implements ConnectionInterface
     public function escapeLike($text)
     {
         return addcslashes($text, '_%\\');
+    }
+
+    /**
+     * Get offset string
+     *
+     * @return string
+     *
+     * @throws Exception
+     */
+    private function getOffsetString()
+    {
+        $now = new DateTime('now');
+        $offset = $now->getOffset();
+        $absoluteOffset = abs($offset);
+
+        $hours = (int) floor($absoluteOffset / 3600);
+        $minutes = (int) round($absoluteOffset / 60 - $hours * 60);
+        $sign = $offset >= 0 ? 1 : -1;
+        $offsetString = sprintf('%+d:%02d', $sign * $hours, $minutes);
+
+        return $offsetString;
     }
 }

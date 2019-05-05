@@ -36,15 +36,15 @@ class Table
     /**
      * Add string
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
-     * @param bool   $isId   is ID
+     * @param string $name    name
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    public function addString($name, $dbName = null, $isId = false)
+    public function addString($name, $dbName = null, array $options = [])
     {
-        return $this->addField($name, Field::TYPE_STRING, $dbName, $isId);
+        return $this->addField($name, Field::TYPE_STRING, $dbName, $options);
     }
 
     /**
@@ -52,14 +52,17 @@ class Table
      *
      * @param string $name              name
      * @param null   $dbName            DB name
-     * @param bool   $isId              is ID
+     * @param array  $options           options
      * @param bool   $isAutoIncremented is auto incremented
      *
      * @return self
      */
-    public function addInt($name, $dbName = null, $isId = false, $isAutoIncremented = false)
+    public function addInt($name, $dbName = null, array $options = [], $isAutoIncremented = false)
     {
-        $this->addField($name, Field::TYPE_INT, $dbName, $isId || $isAutoIncremented);
+        if ($isAutoIncremented) {
+            $options['id'] = true;
+        }
+        $this->addField($name, Field::TYPE_INT, $dbName, $options);
         if ($isAutoIncremented) {
             $this->autoIncrementedField = $this->getField($name);
         }
@@ -70,80 +73,85 @@ class Table
     /**
      * Add float
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
-     * @param bool   $isId   is ID
+     * @param string $name    name
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    public function addFloat($name, $dbName = null, $isId = false)
+    public function addFloat($name, $dbName = null, array $options = [])
     {
-        return $this->addField($name, Field::TYPE_FLOAT, $dbName, $isId);
+        return $this->addField($name, Field::TYPE_FLOAT, $dbName, $options);
     }
 
     /**
      * Add bool
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
+     * @param string $name    name
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    public function addBool($name, $dbName = null)
+    public function addBool($name, $dbName = null, array $options = [])
     {
-        return $this->addField($name, Field::TYPE_BOOL, $dbName);
+        return $this->addField($name, Field::TYPE_BOOL, $dbName, $options);
     }
 
     /**
      * Add date time
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
+     * @param string $name    name
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    public function addDateTime($name, $dbName = null)
+    public function addDateTime($name, $dbName = null, array $options = [])
     {
-        return $this->addField($name, Field::TYPE_DATE_TIME, $dbName);
+        return $this->addField($name, Field::TYPE_DATE_TIME, $dbName, $options);
     }
 
     /**
      * Add date time timestamp
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
+     * @param string $name    name
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    public function addDateTimeTimestamp($name, $dbName = null)
+    public function addDateTimeTimestamp($name, $dbName = null, array $options = [])
     {
-        return $this->addField($name, Field::TYPE_DATE_TIME_TIMESTAMP, $dbName);
+        return $this->addField($name, Field::TYPE_DATE_TIME_TIMESTAMP, $dbName, $options);
     }
 
     /**
      * Add JSON
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
+     * @param string $name    name
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    public function addJson($name, $dbName = null)
+    public function addJson($name, $dbName = null, array $options = [])
     {
-        return $this->addField($name, Field::TYPE_JSON, $dbName);
+        return $this->addField($name, Field::TYPE_JSON, $dbName, $options);
     }
 
     /**
      * Add associative JSON
      *
-     * @param string $name   name
-     * @param null   $dbName DB name
+     * @param string $name    name
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    public function addJsonAssoc($name, $dbName = null)
+    public function addJsonAssoc($name, $dbName = null, array $options = [])
     {
-        return $this->addField($name, Field::TYPE_JSON_ASSOC, $dbName);
+        return $this->addField($name, Field::TYPE_JSON_ASSOC, $dbName, $options);
     }
 
     /**
@@ -195,32 +203,46 @@ class Table
     }
 
     /**
-     * Get non auto incremented fields
+     * Get addable fields
      *
      * @return Field[]
      */
-    public function getNonAutoIncrementedFields()
+    public function getAddableFields()
     {
-        $nonAutoIncrementedFields = array_filter($this->fields, function (Field $field) {
-            return $field !== $this->autoIncrementedField;
+        $addableFields = array_filter($this->fields, function (Field $field) {
+            return $field !== $this->autoIncrementedField && $field->isAddable();
         });
 
-        return $nonAutoIncrementedFields;
+        return $addableFields;
+    }
+
+    /**
+     * Get editable fields
+     *
+     * @return Field[]
+     */
+    public function getEditableFields()
+    {
+        $editableFields = array_filter($this->fields, function (Field $field) {
+            return $field !== $this->autoIncrementedField && $field->isEditable();
+        });
+
+        return $editableFields;
     }
 
     /**
      * Add field
      *
-     * @param string $name   name
-     * @param string $type   type
-     * @param null   $dbName DB name
-     * @param bool   $isId   is ID
+     * @param string $name    name
+     * @param string $type    type
+     * @param null   $dbName  DB name
+     * @param array  $options options
      *
      * @return self
      */
-    private function addField($name, $type = Field::TYPE_STRING, $dbName = null, $isId = false)
+    private function addField($name, $type = Field::TYPE_STRING, $dbName = null, array $options = [])
     {
-        $this->fields[$name] = new Field($name, $type, $dbName, $isId);
+        $this->fields[$name] = new Field($name, $type, $dbName, $options);
 
         return $this;
     }

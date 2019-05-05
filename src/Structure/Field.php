@@ -48,23 +48,23 @@ class Field
     /** @var string */
     private $type;
 
-    /** @var string */
-    private $isId = false;
+    /** @var array */
+    private $options;
 
     /**
      * Construct
      *
-     * @param string      $name   name
-     * @param string      $type   type
-     * @param string|null $dbName DB name
-     * @param bool        $isId   is ID
+     * @param string      $name    name
+     * @param string      $type    type
+     * @param string|null $dbName  DB name
+     * @param array       $options options
      */
-    public function __construct($name, $type = self::TYPE_STRING, $dbName = null, $isId = false)
+    public function __construct($name, $type = self::TYPE_STRING, $dbName = null, array $options = [])
     {
         $this->name = $name;
         $this->type = $type;
         $this->dbName = empty($dbName) ? $name : $dbName;
-        $this->isId = $isId;
+        $this->options = $options;
     }
 
     /**
@@ -281,6 +281,58 @@ class Field
      */
     public function isId()
     {
-        return $this->isId;
+        return array_key_exists('id', $this->options) && $this->options['id'] === true;
+    }
+
+    /**
+     * Is created at
+     *
+     * @return bool
+     */
+    public function isCreatedAt()
+    {
+        return array_key_exists('createdAt', $this->options) && $this->options['createdAt'] === true;
+    }
+
+    /**
+     * Is updated at
+     *
+     * @return bool
+     */
+    public function isUpdatedAt()
+    {
+        return array_key_exists('updatedAt', $this->options) && $this->options['updatedAt'] === true;
+    }
+
+    /**
+     * Is settable
+     *
+     * @return bool
+     */
+    public function isSettable()
+    {
+        return !array_key_exists('settable', $this->options) || $this->options['settable'] !== false;
+    }
+
+    /**
+     * Is addable
+     *
+     * @return bool
+     */
+    public function isAddable()
+    {
+        return (!array_key_exists('addable', $this->options) || $this->options['addable'] !== false) &&
+            $this->isSettable();
+    }
+
+    /**
+     * Is editable
+     *
+     * @return bool
+     */
+    public function isEditable()
+    {
+        return (!array_key_exists('editable', $this->options) || $this->options['editable'] !== false) &&
+            $this->isSettable() && !$this->isCreatedAt();
     }
 }

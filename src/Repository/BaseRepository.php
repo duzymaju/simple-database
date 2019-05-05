@@ -2,6 +2,7 @@
 
 namespace SimpleDatabase\Repository;
 
+use DateTime;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Exception\DatabaseException;
@@ -334,7 +335,13 @@ abstract class BaseRepository
     {
         $params = [];
         $query = $this->connection->insert($this->table->getName());
-        $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonAutoIncrementedFields(), $params);
+        $fields = $this->table->getAddableFields();
+        foreach ($fields as $field) {
+            if ($field->isCreatedAt() || $field->isUpdatedAt()) {
+                $field->setValueToModel($model, new DateTime('now'));
+            }
+        }
+        $set = $this->bindModelParamsWithQuery($query, $model, $fields, $params);
         $query->set($set);
         $query->execute($params);
 
@@ -352,7 +359,13 @@ abstract class BaseRepository
     {
         $params = [];
         $query = $this->connection->update($this->table->getName());
-        $set = $this->bindModelParamsWithQuery($query, $model, $this->table->getNonAutoIncrementedFields(), $params);
+        $fields = $this->table->getEditableFields();
+        foreach ($fields as $field) {
+            if ($field->isUpdatedAt()) {
+                $field->setValueToModel($model, new DateTime('now'));
+            }
+        }
+        $set = $this->bindModelParamsWithQuery($query, $model, $fields, $params);
         $query->set($set);
         $where = $this->bindModelParamsWithQuery($query, $model, $this->table->getIdFields(), $params);
         $query->where($where);
@@ -367,6 +380,8 @@ abstract class BaseRepository
      * @param ModelInterface $model model
      *
      * @return self
+     *
+     * @throws RepositoryException
      */
     protected function delete(ModelInterface $model)
     {
