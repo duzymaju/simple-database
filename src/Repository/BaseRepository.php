@@ -144,7 +144,7 @@ abstract class BaseRepository
         if (!isset($this->table)) {
             throw new RepositoryException(sprintf('Table structure for %s is not defined.', __CLASS__));
         }
-        if (count($ids) > 0) {
+        if (count($ids) === 0) {
             throw new RepositoryException(
                 sprintf('Number of IDs defined for %s method should be at least 1.', __METHOD__)
             );

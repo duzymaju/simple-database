@@ -22,7 +22,7 @@ class Limit implements LimitInterface
     {
         $this->limit = [ $limit ];
         if (isset($offset)) {
-            array_push($this->limit, $offset);
+            array_unshift($this->limit, $offset);
         }
     }
 
