@@ -50,7 +50,7 @@ final class QueryTest extends TestCase
             ' GROUP BY ljt.param1, ljt.param2' .
             ' HAVING ljt.param1 != ljt.param2' .
             ' ORDER BY jt.param2 DESC, rjt.param1 ASC' .
-            ' LIMIT 10, 5',
+            ' LIMIT 5, 10',
             $query->toString()
         );
     }
