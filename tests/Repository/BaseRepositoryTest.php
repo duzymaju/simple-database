@@ -748,7 +748,7 @@ class TestRepository extends BaseRepository
     }
 }
 
-class TestModel extends ModelInterface
+class TestModel implements ModelInterface
 {
     private $id;
     private $id2;

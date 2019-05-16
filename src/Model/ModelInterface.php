@@ -5,6 +5,6 @@ namespace SimpleDatabase\Model;
 /**
  * Model interface
  */
-class ModelInterface
+interface ModelInterface
 {
 }
