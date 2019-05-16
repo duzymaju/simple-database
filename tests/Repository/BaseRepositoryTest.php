@@ -186,6 +186,125 @@ final class BaseRepositoryTest extends TestCase
         $this->assertEquals([ $testModelInstance ], $results);
     }
 
+    /** Test getting by query */
+    public function testGettingByQuery()
+    {
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('select')
+            ->with('tt.*, att.stringDbField as anotherStringField', 'TestTable')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('leftJoin')
+            ->with('AnotherTestTable', 'att', 'tt.id = att.testId')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(5))
+            ->method('bindParam')
+            ->withConsecutive(
+                [ ':floatId', QueryInterface::PARAM_FLOAT ],
+                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
+                [ ':jsonAssocStructure', QueryInterface::PARAM_STRING ],
+                [ ':created', QueryInterface::PARAM_STRING ],
+                [ ':timestamp', QueryInterface::PARAM_INT ]
+            )
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('where')
+            ->with([
+                'floatId = :floatId',
+                'jsonStructure = :jsonStructure',
+                'jsonAssocStructure = :jsonAssocStructure',
+                'created = :created',
+                'timestamp = :timestamp',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('orderBy')
+            ->with([
+                'id ASC',
+                'stringDbField DESC',
+                'RAND()',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('limit')
+            ->with(10, 5)
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('execute')
+            ->with([
+                ':floatId' => 4.15,
+                ':jsonStructure' => '{"a":2}',
+                ':jsonAssocStructure' => '{"b":["b1","b2"]}',
+                ':created' => '2019-04-29 12:34:56',
+                ':timestamp' => '1556620496',
+            ])
+            ->willReturn([
+                [
+                    'id' => '3',
+                    'floatId' => '4.15',
+                    'stringDbField' => 'abc',
+                    'boolField' => '0',
+                    'jsonStructure' => '{"a":2}',
+                    'jsonAssocStructure' => '{"b":["b1","b2"]}',
+                    'created' => '2019-04-29 12:34:56',
+                    'timestamp' => '1556620496',
+                    'anotherStringField' => 'def',
+                ],
+            ])
+        ;
+
+        $objectStructure1 = new stdClass();
+        $objectStructure1->a = 2;
+        $objectStructure2 = [ 'b' => [ 'b1', 'b2' ] ];
+        $repository = new TestRepository($this->connectionMock);
+        $query = $repository
+            ->createSelectQuery('tt.*, att.stringDbField as anotherStringField', 'tt')
+            ->leftJoin('AnotherTestTable', 'att', 'tt.id = att.testId')
+        ;
+        $results = $repository->getByQuery($query, [
+            'id2' => 4.15,
+            'jsonStructure' => $objectStructure1,
+            'jsonAssocStructure' => $objectStructure2,
+            'createdAt' => new DateTime('2019-04-29 12:34:56'),
+            'time' => new DateTime('2019-04-30 12:34:56'),
+        ], [
+            'id' => 'ASC',
+            'stringField' => 'desc',
+            'Rand',
+        ], [
+            'limit' => 10,
+            'offset' => 5,
+            'onModelCreate' => function (TestModel $model, array $data) {
+                $model->setStringField($model->getStringField() . $data['anotherStringField']);
+            },
+        ]);
+
+        $testModelInstance = $repository->createModelInstanceFromDb([
+            'id' => '3',
+            'floatId' => '4.15',
+            'stringDbField' => 'abcdef',
+            'boolField' => '0',
+            'jsonStructure' => '{"a":2}',
+            'jsonAssocStructure' => '{"b":["b1","b2"]}',
+            'created' => '2019-04-29 12:34:56',
+            'timestamp' => '1556620496',
+        ]);
+        $this->assertEquals([ $testModelInstance ], $results);
+    }
+
     /** Test inserting element */
     public function testInsertingElement()
     {
@@ -588,6 +707,16 @@ class TestRepository extends BaseRepository
         return parent::getBy($conditions, $order, $limit, $offset);
     }
 
+    public function createSelectQuery($items = '*', $tableSlug = null, $tableName = null)
+    {
+        return parent::createSelectQuery($items, $tableSlug, $tableName);
+    }
+
+    public function getByQuery(QueryInterface $query, array $conditions, array $order = [], array $options = [])
+    {
+        return parent::getByQuery($query, $conditions, $order, $options);
+    }
+
     public function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null)
     {
         return parent::getPaginated($conditions, $order, $page, $pack);
@@ -613,9 +742,9 @@ class TestRepository extends BaseRepository
         return parent::delete($model);
     }
 
-    public function createModelInstanceFromDb(array $data)
+    public function createModelInstanceFromDb(array $data, callable $callback = null)
     {
-        return parent::createModelInstanceFromDb($data);
+        return parent::createModelInstanceFromDb($data, $callback);
     }
 }
 

@@ -229,11 +229,52 @@ abstract class BaseRepository
      * @param int|null $limit      limit
      * @param int      $offset     offset
      *
-     * @return array
+     * @return ModelInterface[]
      */
     protected function getBy(array $conditions, array $order = [], $limit = null, $offset = 0)
     {
-        $query = $this->connection->select('*', $this->table->getName());
+        $items = $this->getByQuery($this->createSelectQuery(), $conditions, $order, [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+
+        return $items;
+    }
+
+    /**
+     * Create select query
+     *
+     * @param string|array $items     items
+     * @param string|null  $tableSlug table slug
+     * @param string|null  $tableName table name
+     *
+     * @return QueryInterface
+     */
+    protected function createSelectQuery($items = '*', $tableSlug = null, $tableName = null)
+    {
+        $tableName = empty($tableName) ? $this->table->getName() : $tableName;
+        $query = $this->connection->select($items, $tableName, $tableSlug);
+
+        return $query;
+    }
+
+    /**
+     * Get by query
+     *
+     * @param QueryInterface $query      query
+     * @param array          $conditions conditions
+     * @param array          $order      order
+     * @param array          $options    options
+     *
+     * @return ModelInterface[]
+     */
+    protected function getByQuery(QueryInterface $query, array $conditions, array $order = [], array $options = [])
+    {
+        $options = array_merge([
+            'limit' => null,
+            'offset' => 0,
+            'onModelCreate' => null,
+        ], $options);
 
         $params = [];
         try {
@@ -259,14 +300,15 @@ abstract class BaseRepository
             $query->orderBy($queryOrder);
         }
 
-        if (is_int($limit) && $limit >= 0 && is_int($offset) && $offset >= 0) {
-            $query->limit($limit, $offset);
+        if (is_int($options['limit']) && $options['limit'] >= 0 && $options['offset'] >= 0) {
+            $query->limit($options['limit'], $options['offset']);
         }
 
         $results = $query->execute($params);
         $items = [];
+        $callback = is_callable($options['onModelCreate']) ? $options['onModelCreate'] : null;
         foreach ($results as $result) {
-            $items[] = $this->createModelInstanceFromDb($result);
+            $items[] = $this->createModelInstanceFromDb($result, $callback);
         }
 
         return $items;
@@ -401,11 +443,12 @@ abstract class BaseRepository
     /**
      * Create model instance from DB
      *
-     * @param array $data data
+     * @param array    $data     data
+     * @param callable $callback callback
      *
-     * @return mixed
+     * @return ModelInterface
      */
-    protected function createModelInstanceFromDb(array $data)
+    protected function createModelInstanceFromDb(array $data, callable $callback = null)
     {
         $model = new $this->modelClass();
         foreach ($this->table->getFields() as $field) {
@@ -413,6 +456,9 @@ abstract class BaseRepository
                 $dbValue = $data[$field->getDbName()];
                 $field->setValueToModel($model, $field->getValue($dbValue));
             }
+        }
+        if (isset($callback)) {
+            $callback($model, $data);
         }
         $this->dbModelInstances[] = $model;
 
