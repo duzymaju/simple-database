@@ -478,6 +478,16 @@ abstract class BaseRepository
     }
 
     /**
+     * Get table
+     *
+     * @return Table|null
+     */
+    protected function getTable()
+    {
+        return $this->table;
+    }
+
+    /**
      * Bind model params with query
      *
      * @param QueryInterface $query  query
