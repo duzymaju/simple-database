@@ -233,10 +233,35 @@ abstract class BaseRepository
      */
     protected function getBy(array $conditions, array $order = [], $limit = null, $offset = 0)
     {
-        $items = $this->getByQuery($this->createSelectQuery(), $conditions, $order, [
-            'limit' => $limit,
-            'offset' => $offset,
-        ]);
+        $query = $this->createSelectQuery();
+
+        $params = [];
+        try {
+            $this->bindParamsWithQuery($query, $conditions, $params);
+        } catch (DatabaseException $e) {
+            unset($e);
+            return [];
+        }
+        $queryOrder = [];
+        foreach ($order as $key => $direction) {
+            $direction = strtoupper($direction);
+            if ($direction === 'RAND') {
+                $queryOrder[] = 'RAND()';
+            } else {
+                $field = $this->table->getField($key);
+                if (isset($field) && ($direction === 'ASC' || $direction === 'DESC')) {
+                    $queryOrder[] = $this->connection->escape($field->getDbName()) . ' ' . $direction;
+                }
+            }
+        }
+        if (count($queryOrder) > 0) {
+            $query->orderBy($queryOrder);
+        }
+        if (is_int($limit) && $limit >= 0 && is_int($offset) && $offset >= 0) {
+            $query->limit($limit, $offset);
+        }
+
+        $items = $this->getByQuery($query, $params);
 
         return $items;
     }
@@ -261,48 +286,17 @@ abstract class BaseRepository
     /**
      * Get by query
      *
-     * @param QueryInterface $query      query
-     * @param array          $conditions conditions
-     * @param array          $order      order
-     * @param array          $options    options
+     * @param QueryInterface $query   query
+     * @param array          $params  params
+     * @param array          $options options
      *
      * @return ModelInterface[]
      */
-    protected function getByQuery(QueryInterface $query, array $conditions, array $order = [], array $options = [])
+    protected function getByQuery(QueryInterface $query, array $params = [], array $options = [])
     {
         $options = array_merge([
-            'limit' => null,
-            'offset' => 0,
             'onModelCreate' => null,
         ], $options);
-
-        $params = [];
-        try {
-            $this->bindParamsWithQuery($query, $conditions, $params);
-        } catch (DatabaseException $e) {
-            unset($e);
-            return [];
-        }
-
-        $queryOrder = [];
-        foreach ($order as $key => $direction) {
-            $direction = strtoupper($direction);
-            if ($direction === 'RAND') {
-                $queryOrder[] = 'RAND()';
-            } else {
-                $field = $this->table->getField($key);
-                if (isset($field) && ($direction === 'ASC' || $direction === 'DESC')) {
-                    $queryOrder[] = $this->connection->escape($field->getDbName()) . ' ' . $direction;
-                }
-            }
-        }
-        if (count($queryOrder) > 0) {
-            $query->orderBy($queryOrder);
-        }
-
-        if (is_int($options['limit']) && $options['limit'] >= 0 && $options['offset'] >= 0) {
-            $query->limit($options['limit'], $options['offset']);
-        }
 
         $results = $query->execute($params);
         $items = [];

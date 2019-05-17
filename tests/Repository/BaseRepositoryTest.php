@@ -249,7 +249,7 @@ final class BaseRepositoryTest extends TestCase
                 ':jsonStructure' => '{"a":2}',
                 ':jsonAssocStructure' => '{"b":["b1","b2"]}',
                 ':created' => '2019-04-29 12:34:56',
-                ':timestamp' => '1556620496',
+                ':timestamp' => 1556620496,
             ])
             ->willReturn([
                 [
@@ -266,27 +266,36 @@ final class BaseRepositoryTest extends TestCase
             ])
         ;
 
-        $objectStructure1 = new stdClass();
-        $objectStructure1->a = 2;
-        $objectStructure2 = [ 'b' => [ 'b1', 'b2' ] ];
         $repository = new TestRepository($this->connectionMock);
         $query = $repository
             ->createSelectQuery('tt.*, att.stringDbField as anotherStringField', 'tt')
             ->leftJoin('AnotherTestTable', 'att', 'tt.id = att.testId')
+            ->bindParam(':floatId', QueryInterface::PARAM_FLOAT)
+            ->bindParam(':jsonStructure', QueryInterface::PARAM_STRING)
+            ->bindParam(':jsonAssocStructure', QueryInterface::PARAM_STRING)
+            ->bindParam(':created', QueryInterface::PARAM_STRING)
+            ->bindParam(':timestamp', QueryInterface::PARAM_INT)
+            ->where([
+                'floatId = :floatId',
+                'jsonStructure = :jsonStructure',
+                'jsonAssocStructure = :jsonAssocStructure',
+                'created = :created',
+                'timestamp = :timestamp',
+            ])
+            ->orderBy([
+                'id ASC',
+                'stringDbField DESC',
+                'RAND()',
+            ])
+            ->limit(10, 5)
         ;
         $results = $repository->getByQuery($query, [
-            'id2' => 4.15,
-            'jsonStructure' => $objectStructure1,
-            'jsonAssocStructure' => $objectStructure2,
-            'createdAt' => new DateTime('2019-04-29 12:34:56'),
-            'time' => new DateTime('2019-04-30 12:34:56'),
+            ':floatId' => 4.15,
+            ':jsonStructure' => '{"a":2}',
+            ':jsonAssocStructure' => '{"b":["b1","b2"]}',
+            ':created' => '2019-04-29 12:34:56',
+            ':timestamp' => 1556620496,
         ], [
-            'id' => 'ASC',
-            'stringField' => 'desc',
-            'Rand',
-        ], [
-            'limit' => 10,
-            'offset' => 5,
             'onModelCreate' => function (TestModel $model, array $data) {
                 $model->setStringField($model->getStringField() . $data['anotherStringField']);
             },
@@ -712,9 +721,9 @@ class TestRepository extends BaseRepository
         return parent::createSelectQuery($items, $tableSlug, $tableName);
     }
 
-    public function getByQuery(QueryInterface $query, array $conditions, array $order = [], array $options = [])
+    public function getByQuery(QueryInterface $query, array $params = [], array $options = [])
     {
-        return parent::getByQuery($query, $conditions, $order, $options);
+        return parent::getByQuery($query, $params, $options);
     }
 
     public function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null)

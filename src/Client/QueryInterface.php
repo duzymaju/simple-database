@@ -2,6 +2,8 @@
 
 namespace SimpleDatabase\Client;
 
+use SimpleDatabase\Exception\DatabaseException;
+use SimpleDatabase\Exception\DataException;
 use SimpleDatabase\Tool\ToStringInterface;
 
 /**
@@ -140,9 +142,12 @@ interface QueryInterface extends ToStringInterface
     /**
      * Execute
      *
-     * @param array|null $params params
+     * @param array $params params
      *
      * @return array|null
+     *
+     * @throws DatabaseException
+     * @throws DataException
      */
-    public function execute(array $params = null);
+    public function execute(array $params = []);
 }

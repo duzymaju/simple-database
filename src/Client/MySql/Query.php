@@ -13,6 +13,7 @@ use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Client\SetInterface;
 use SimpleDatabase\Client\TableInterface;
 use SimpleDatabase\Client\WhereInterface;
+use SimpleDatabase\Exception\DatabaseException;
 use SimpleDatabase\Exception\DataException;
 
 /**
@@ -286,13 +287,14 @@ class Query implements QueryInterface
     /**
      * Execute
      *
-     * @param array|null $params params
+     * @param array $params params
      *
      * @return array|null
      *
+     * @throws DatabaseException
      * @throws DataException
      */
-    public function execute(array $params = null)
+    public function execute(array $params = [])
     {
         $paramNames = array_keys($this->params);
         $valueNames = array_keys($params);
@@ -310,7 +312,10 @@ class Query implements QueryInterface
                 $this->statement->bindValue($name, $params[$name], $pdoType);
             }
         }
-        $this->statement->execute();
+        if (!$this->statement->execute()) {
+            throw new DatabaseException('Statement\'s execution failed.');
+        }
+
         $results = $this->command->getType() === Command::TYPE_SELECT ?
             $this->statement->fetchAll(PDO::FETCH_ASSOC) : null;
 
