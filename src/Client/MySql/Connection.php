@@ -10,6 +10,7 @@ use SimpleDatabase\Client\CommandInterface;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Exception\DatabaseException;
+use SimpleStructure\Tool\Parser;
 
 /**
  * Class Connection
@@ -193,11 +194,7 @@ class Connection implements ConnectionInterface
      */
     public function escape($text)
     {
-        if (!function_exists('mysql_real_escape_string')) {
-            return $text;
-        }
-
-        return mysql_real_escape_string($text);
+        return Parser::parseSlug($text, '_', false);
     }
 
     /**

@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "80280dcf51073d2d2b8a682d5a675566",
+    "content-hash": "a7681f5366eb029f29d8b6e150fc9130",
     "packages": [
         {
             "name": "majpage/simple-structure",
-            "version": "0.2.0",
+            "version": "0.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/duzymaju/simple-structure.git",
-                "reference": "8604b04d3d4297a69d67d5cb2160a536e85d9900"
+                "reference": "192ea14d6e33e375c38452f6fa34d8309e19306f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/duzymaju/simple-structure/zipball/8604b04d3d4297a69d67d5cb2160a536e85d9900",
-                "reference": "8604b04d3d4297a69d67d5cb2160a536e85d9900",
+                "url": "https://api.github.com/repos/duzymaju/simple-structure/zipball/192ea14d6e33e375c38452f6fa34d8309e19306f",
+                "reference": "192ea14d6e33e375c38452f6fa34d8309e19306f",
                 "shasum": ""
             },
             "require": {
@@ -48,7 +48,7 @@
                 }
             ],
             "description": "Simple PHP project's structure",
-            "time": "2019-05-06T16:19:56+00:00"
+            "time": "2019-05-25T10:58:08+00:00"
         }
     ],
     "packages-dev": [
