@@ -315,10 +315,11 @@ abstract class BaseRepository
      * @param array $order      order
      * @param int   $page       page
      * @param int   $pack       pack
+     * @param bool  $countAll   count all
      *
      * @return Paginator
      */
-    protected function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null)
+    protected function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null, $countAll = false)
     {
         $page = max(1, $page);
 
@@ -330,8 +331,9 @@ abstract class BaseRepository
             $offset = 0;
         }
 
+        $totalNumber = $countAll ? $this->countBy($conditions) : null;
         $items = $this->getBy($conditions, $order, $limit, $offset);
-        $paginator = new Paginator($items, $page, $pack);
+        $paginator = new Paginator($items, $page, $pack, $totalNumber);
 
         return $paginator;
     }

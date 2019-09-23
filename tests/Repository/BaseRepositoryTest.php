@@ -726,9 +726,9 @@ class TestRepository extends BaseRepository
         return parent::getByQuery($query, $params, $options);
     }
 
-    public function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null)
+    public function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null, $countAll = false)
     {
-        return parent::getPaginated($conditions, $order, $page, $pack);
+        return parent::getPaginated($conditions, $order, $page, $pack, $countAll);
     }
 
     public function save(ModelInterface $model)
