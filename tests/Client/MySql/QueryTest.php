@@ -33,7 +33,7 @@ final class QueryTest extends TestCase
             ->outerJoin('OuterJoinedTable', 'ojt', [ 'ljt.param2 = 3.5' ])
             ->where([ 'aa = :aa', 'bb = :bb', 'cc = :cc' ])
             ->groupBy([ 'ljt.param1', 'ljt.param2' ], 'ljt.param1 != ljt.param2')
-            ->orderBy([ 'jt.param2' => 'desc', 'rjt.param1' => 'ASC' ])
+            ->orderBy([ 'jt.param2' => 'desc', 'rjt.param1' => 'ASC', 'jt.param3 DESC', 'RAND()' ])
             ->limit(10, 5)
             ->bindParam('aa', Query::PARAM_INT)
             ->bindParam('bb', Query::PARAM_STRING)
@@ -49,7 +49,7 @@ final class QueryTest extends TestCase
             ' WHERE aa = :aa && bb = :bb && cc = :cc' .
             ' GROUP BY ljt.param1, ljt.param2' .
             ' HAVING ljt.param1 != ljt.param2' .
-            ' ORDER BY jt.param2 DESC, rjt.param1 ASC' .
+            ' ORDER BY jt.param2 DESC, rjt.param1 ASC, jt.param3 DESC, RAND()' .
             ' LIMIT 5, 10',
             $query->toString()
         );

@@ -196,6 +196,9 @@ class Query implements QueryInterface
             $this->order = new Order(array_combine([ $order ], [ Order::ASC ]));
         } elseif (is_array($order)) {
             $this->order = new Order(array_filter($order, function ($direction, $column) {
+                if (is_numeric($column) && is_string($direction) && !empty($direction)) {
+                    return true;
+                }
                 $unifiedDirection = strtoupper($direction);
                 return ($unifiedDirection === Order::ASC || $unifiedDirection === Order::DESC) && is_string($column) &&
                     !empty($column);

@@ -40,6 +40,9 @@ class Order implements OrderInterface
         }
 
         $statement = ' ORDER BY ' . implode(', ', array_map(function ($direction, $column) {
+            if (is_numeric($column) && is_string($direction) && !empty($direction)) {
+                return $direction;
+            }
             return $column . ' ' . strtoupper($direction);
         }, array_values($this->columns), array_keys($this->columns)));
 
