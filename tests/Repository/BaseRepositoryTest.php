@@ -38,7 +38,7 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('select')
-            ->with('COUNT(*) AS count', 'TestTable')
+            ->with('COUNT(*) AS count', 'test_table')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -90,7 +90,7 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('select')
-            ->with('*', 'TestTable')
+            ->with('*', 'test_table')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -173,7 +173,7 @@ final class BaseRepositoryTest extends TestCase
             'Rand',
         ], 10, 5);
 
-        $testModelInstance = $repository->createModelInstanceFromDb([
+        $testModelInstance = $repository->createDbModelInstance([
             'id' => '3',
             'floatId' => '4.15',
             'stringDbField' => 'abc',
@@ -192,13 +192,13 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('select')
-            ->with('tt.*, att.stringDbField as anotherStringField', 'TestTable')
+            ->with('tt.*, att.stringDbField as anotherStringField', 'test_table')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
             ->expects($this->exactly(1))
             ->method('leftJoin')
-            ->with('AnotherTestTable', 'att', 'tt.id = att.testId')
+            ->with('another_test_table', 'att', 'tt.id = att.testId')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -269,7 +269,7 @@ final class BaseRepositoryTest extends TestCase
         $repository = new TestRepository($this->connectionMock);
         $query = $repository
             ->createSelectQuery('tt.*, att.stringDbField as anotherStringField', 'tt')
-            ->leftJoin('AnotherTestTable', 'att', 'tt.id = att.testId')
+            ->leftJoin('another_test_table', 'att', 'tt.id = att.testId')
             ->bindParam(':floatId', QueryInterface::PARAM_FLOAT)
             ->bindParam(':jsonStructure', QueryInterface::PARAM_STRING)
             ->bindParam(':jsonAssocStructure', QueryInterface::PARAM_STRING)
@@ -301,7 +301,7 @@ final class BaseRepositoryTest extends TestCase
             },
         ]);
 
-        $testModelInstance = $repository->createModelInstanceFromDb([
+        $testModelInstance = $repository->createDbModelInstance([
             'id' => '3',
             'floatId' => '4.15',
             'stringDbField' => 'abcdef',
@@ -320,7 +320,7 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('insert')
-            ->with('TestTable')
+            ->with('test_table')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -395,7 +395,7 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('update')
-            ->with('TestTable')
+            ->with('test_table')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -456,7 +456,7 @@ final class BaseRepositoryTest extends TestCase
         ;
 
         $repository = new TestRepository($this->connectionMock);
-        $testModelInstance = $repository->createModelInstanceFromDb([
+        $testModelInstance = $repository->createDbModelInstance([
             'id' => '3',
             'floatId' => '4.15',
             'stringDbField' => 'abc',
@@ -473,7 +473,7 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('insert')
-            ->with('TestTable')
+            ->with('test_table')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -533,7 +533,7 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('select')
-            ->with('*', 'TestTable')
+            ->with('*', 'test_table')
             ->willReturn($selectQueryMock)
         ;
         $selectQueryMock
@@ -607,7 +607,7 @@ final class BaseRepositoryTest extends TestCase
         $this->connectionMock
             ->expects($this->exactly(1))
             ->method('delete')
-            ->with('TestTable')
+            ->with('test_table')
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -639,7 +639,7 @@ final class BaseRepositoryTest extends TestCase
         ;
 
         $repository = new TestRepository($this->connectionMock);
-        $testModelInstance = $repository->createModelInstanceFromDb([
+        $testModelInstance = $repository->createDbModelInstance([
             'id' => '3',
             'floatId' => '4.15',
         ]);
@@ -671,9 +671,9 @@ class TestRepository extends BaseRepository
     {
         parent::__construct($connection);
 
-        $this->setModelClass('TestModel');
         $this
-            ->setStructure('TestTable')
+            ->setModelClass('TestModel')
+            ->setStructure('test_table')
             ->addInt('id', null, [ 'id' => true ], true)
             ->addFloat('id2', 'floatId', [ 'id' => true ])
             ->addString('stringField', 'stringDbField')
@@ -751,9 +751,9 @@ class TestRepository extends BaseRepository
         return parent::delete($model);
     }
 
-    public function createModelInstanceFromDb(array $data, callable $callback = null)
+    public function createDbModelInstance(array $data)
     {
-        return parent::createModelInstanceFromDb($data, $callback);
+        return parent::createDbModelInstance($data);
     }
 }
 

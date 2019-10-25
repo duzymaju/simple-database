@@ -23,7 +23,7 @@ final class QueryTest extends TestCase
     /** Test select query */
     public function testSelectQuery()
     {
-        $query = new Query($this->connectionMock, Command::TYPE_SELECT, 'TestTable', 't', [
+        $query = new Query($this->connectionMock, Command::TYPE_SELECT, 'test_table', 't', [
             'jt.*', 'ljt.param3', 'rjt.param3',
         ]);
         $query
@@ -41,7 +41,7 @@ final class QueryTest extends TestCase
         ;
 
         $this->assertEquals(
-            'SELECT jt.*, ljt.param3, rjt.param3 FROM TestTable t' .
+            'SELECT jt.*, ljt.param3, rjt.param3 FROM test_table t' .
             ' INNER JOIN JoinedTable jt ON jt.param1 = 1' .
             ' LEFT OUTER JOIN LeftJoinedTable ljt ON jt.param2 = ljt.param1 && ljt.param2 = "w"' .
             ' RIGHT OUTER JOIN RightJoinedTable rjt ON jt.param3 = rjt.param1' .
@@ -58,7 +58,7 @@ final class QueryTest extends TestCase
     /** Test insert query */
     public function testInsertQuery()
     {
-        $query = new Query($this->connectionMock, Command::TYPE_INSERT, 'TestTable');
+        $query = new Query($this->connectionMock, Command::TYPE_INSERT, 'test_table');
         $query
             ->set([ 'param1 = :param1', 'param2 = :param2', 'param3 = :param3' ])
             ->bindParam('param1', Query::PARAM_INT)
@@ -67,7 +67,7 @@ final class QueryTest extends TestCase
         ;
 
         $this->assertEquals(
-            'INSERT INTO TestTable SET param1 = :param1, param2 = :param2, param3 = :param3',
+            'INSERT INTO test_table SET param1 = :param1, param2 = :param2, param3 = :param3',
             $query->toString()
         );
     }
@@ -75,7 +75,7 @@ final class QueryTest extends TestCase
     /** Test update query */
     public function testUpdateQuery()
     {
-        $query = new Query($this->connectionMock, Command::TYPE_UPDATE, 'TestTable', 't', []);
+        $query = new Query($this->connectionMock, Command::TYPE_UPDATE, 'test_table', 't', []);
         $query
             ->set([ 'param2 = :param2' ])
             ->where('param1 = :param1')
@@ -83,17 +83,17 @@ final class QueryTest extends TestCase
             ->bindParam('param2', Query::PARAM_STRING)
         ;
 
-        $this->assertEquals('UPDATE TestTable t SET param2 = :param2 WHERE param1 = :param1', $query->toString());
+        $this->assertEquals('UPDATE test_table t SET param2 = :param2 WHERE param1 = :param1', $query->toString());
     }
 
     /** Test delete query */
     public function testDeleteQuery()
     {
-        $query = new Query($this->connectionMock, Command::TYPE_DELETE, 'TestTable', null, [
+        $query = new Query($this->connectionMock, Command::TYPE_DELETE, 'test_table', null, [
             'itemOfImproperList',
         ]);
         $query->where([ 'aa = :aa', 'bb = :bb' ]);
 
-        $this->assertEquals('DELETE FROM TestTable WHERE aa = :aa && bb = :bb', $query->toString());
+        $this->assertEquals('DELETE FROM test_table WHERE aa = :aa && bb = :bb', $query->toString());
     }
 }
