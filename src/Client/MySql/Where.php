@@ -2,6 +2,8 @@
 
 namespace SimpleDatabase\Client\MySql;
 
+use SimpleDatabase\Client\Condition\ConditionGroupInterface;
+use SimpleDatabase\Client\MySql\Condition\AndCondition;
 use SimpleDatabase\Client\WhereInterface;
 
 /**
@@ -9,17 +11,17 @@ use SimpleDatabase\Client\WhereInterface;
  */
 class Where implements WhereInterface
 {
-    /** @var string[] */
+    /** @var ConditionGroupInterface */
     private $where;
 
     /**
      * Construct
      *
-     * @param string[] $where where
+     * @param ConditionGroupInterface|string[] $where where
      */
-    public function __construct(array $where)
+    public function __construct($where)
     {
-        $this->where = $where;
+        $this->where = $where instanceof ConditionGroupInterface ? $where : new AndCondition((array) $where);
     }
 
     /**
@@ -29,11 +31,11 @@ class Where implements WhereInterface
      */
     public function toString()
     {
-        if (count($this->where) === 0) {
+        if ($this->where->count() === 0) {
             return '';
         }
 
-        $statement = ' WHERE ' . implode(' && ', $this->where);
+        $statement = ' WHERE ' . $this->where->toQuery();
 
         return $statement;
     }

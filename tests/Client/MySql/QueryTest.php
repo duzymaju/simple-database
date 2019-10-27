@@ -46,7 +46,7 @@ final class QueryTest extends TestCase
             ' LEFT OUTER JOIN LeftJoinedTable ljt ON jt.param2 = ljt.param1 && ljt.param2 = "w"' .
             ' RIGHT OUTER JOIN RightJoinedTable rjt ON jt.param3 = rjt.param1' .
             ' FULL OUTER JOIN OuterJoinedTable ojt ON ljt.param2 = 3.5' .
-            ' WHERE aa = :aa && bb = :bb && cc = :cc' .
+            ' WHERE (aa = :aa && bb = :bb && cc = :cc)' .
             ' GROUP BY ljt.param1, ljt.param2' .
             ' HAVING ljt.param1 != ljt.param2' .
             ' ORDER BY jt.param2 DESC, rjt.param1 ASC, jt.param3 DESC, RAND()' .
@@ -66,7 +66,7 @@ final class QueryTest extends TestCase
             ->leftJoin('LeftJoinedTable', 'ljt', [ 'jt.param2 = ljt.param1', 'ljt.param2 = "w"' ])
             ->rightJoin('RightJoinedTable', 'rjt', 'jt.param3 = rjt.param1')
             ->outerJoin('OuterJoinedTable', 'ojt', [ 'ljt.param2 = 3.5' ])
-            ->where([ 'aa = :aa', 'bb = :bb', 'cc = :cc' ])
+            ->where($query->allOf([ 'aa = :aa', $query->anyOf([ 'bb = :bb', 'cc = :cc' ]) ]))
             ->groupBy([ 'ljt.param1', 'ljt.param2' ], 'ljt.param1 != ljt.param2')
             ->orderBy([ 'jt.param2' => 'desc', 'rjt.param1' => 'ASC', 'jt.param3 DESC', 'RAND()' ])
             ->limit(10, 5)
@@ -82,7 +82,7 @@ final class QueryTest extends TestCase
             ' LEFT OUTER JOIN LeftJoinedTable ljt ON jt.param2 = ljt.param1 && ljt.param2 = "w"' .
             ' RIGHT OUTER JOIN RightJoinedTable rjt ON jt.param3 = rjt.param1' .
             ' FULL OUTER JOIN OuterJoinedTable ojt ON ljt.param2 = 3.5' .
-            ' WHERE aa = :aa && bb = :bb && cc = :cc' .
+            ' WHERE (aa = :aa && (bb = :bb || cc = :cc))' .
             ' GROUP BY ljt.param1, ljt.param2' .
             ' HAVING ljt.param1 != ljt.param2' .
             ' ORDER BY jt.param2 DESC, rjt.param1 ASC, jt.param3 DESC, RAND()' .
@@ -119,7 +119,7 @@ final class QueryTest extends TestCase
             ->bindParam('param2', Query::PARAM_STRING)
         ;
 
-        $this->assertEquals('UPDATE test_table t SET param2 = :param2 WHERE param1 = :param1', $query->toString());
+        $this->assertEquals('UPDATE test_table t SET param2 = :param2 WHERE (param1 = :param1)', $query->toString());
     }
 
     /** Test delete query */
@@ -130,6 +130,6 @@ final class QueryTest extends TestCase
         ]);
         $query->where([ 'aa = :aa', 'bb = :bb' ]);
 
-        $this->assertEquals('DELETE FROM test_table WHERE aa = :aa && bb = :bb', $query->toString());
+        $this->assertEquals('DELETE FROM test_table WHERE (aa = :aa && bb = :bb)', $query->toString());
     }
 }

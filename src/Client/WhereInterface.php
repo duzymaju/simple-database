@@ -2,6 +2,7 @@
 
 namespace SimpleDatabase\Client;
 
+use SimpleDatabase\Client\Condition\ConditionGroupInterface;
 use SimpleDatabase\Tool\ToStringInterface;
 
 /**
@@ -12,7 +13,7 @@ interface WhereInterface extends ToStringInterface
     /**
      * Construct
      *
-     * @param string[] $where where
+     * @param ConditionGroupInterface|string[] $where where
      */
-    public function __construct(array $where);
+    public function __construct($where);
 }

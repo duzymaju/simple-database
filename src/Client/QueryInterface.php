@@ -2,6 +2,7 @@
 
 namespace SimpleDatabase\Client;
 
+use SimpleDatabase\Client\Condition\ConditionGroupInterface;
 use SimpleDatabase\Exception\DatabaseException;
 use SimpleDatabase\Exception\DataException;
 use SimpleDatabase\Tool\ToStringInterface;
@@ -99,6 +100,24 @@ interface QueryInterface extends ToStringInterface
      * @return self
      */
     public function where($where);
+
+    /**
+     * All of
+     *
+     * @param array $conditions conditions
+     *
+     * @return ConditionGroupInterface
+     */
+    public static function allOf(array $conditions);
+
+    /**
+     * Any of
+     *
+     * @param array $conditions conditions
+     *
+     * @return ConditionGroupInterface
+     */
+    public static function anyOf(array $conditions);
 
     /**
      * Group by

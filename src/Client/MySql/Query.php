@@ -6,9 +6,12 @@ use PDO;
 use PDOStatement;
 use ReflectionClass;
 use SimpleDatabase\Client\CommandInterface;
+use SimpleDatabase\Client\Condition\ConditionGroupInterface;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\GroupInterface;
 use SimpleDatabase\Client\LimitInterface;
+use SimpleDatabase\Client\MySql\Condition\AndCondition;
+use SimpleDatabase\Client\MySql\Condition\OrCondition;
 use SimpleDatabase\Client\OrderInterface;
 use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Client\SetInterface;
@@ -155,16 +158,40 @@ class Query implements QueryInterface
     /**
      * Where
      *
-     * @param string[]|string $where where
+     * @param ConditionGroupInterface|string[]|string $where where
      *
      * @return self
      */
     public function where($where)
     {
         $this->resetStatement();
-        $this->where = new Where($this->getStringList($where));
+        $this->where = new Where($where instanceof ConditionGroupInterface ? $where : $this->getStringList($where));
 
         return $this;
+    }
+
+    /**
+     * All of
+     *
+     * @param array $conditions conditions
+     *
+     * @return ConditionGroupInterface
+     */
+    public static function allOf(array $conditions)
+    {
+        return new AndCondition($conditions);
+    }
+
+    /**
+     * Any of
+     *
+     * @param array $conditions conditions
+     *
+     * @return ConditionGroupInterface
+     */
+    public static function anyOf(array $conditions)
+    {
+        return new OrCondition($conditions);
     }
 
     /**
