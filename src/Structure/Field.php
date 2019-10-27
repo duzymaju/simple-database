@@ -133,19 +133,15 @@ class Field
             case self::TYPE_BOOL:
                 return QueryInterface::PARAM_BOOL;
 
-            case self::TYPE_DATE_TIME:
-                return QueryInterface::PARAM_STRING;
-
-            case self::TYPE_DATE_TIME_TIMESTAMP:
-                return QueryInterface::PARAM_INT;
-
             case self::TYPE_FLOAT:
                 return QueryInterface::PARAM_FLOAT;
 
             case self::TYPE_INT:
+            case self::TYPE_DATE_TIME_TIMESTAMP:
                 return QueryInterface::PARAM_INT;
 
             case self::TYPE_STRING:
+            case self::TYPE_DATE_TIME:
             default:
                 return QueryInterface::PARAM_STRING;
         }

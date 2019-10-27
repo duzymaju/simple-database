@@ -14,6 +14,7 @@ use SimpleDatabase\Relation\RepositoriesRelation;
 use SimpleDatabase\Structure\Field;
 use SimpleDatabase\Structure\Table;
 use SimpleStructure\Exception\NotFoundException;
+use SimpleStructure\Tool\PagesHelper;
 use SimpleStructure\Tool\Paginator;
 
 /**
@@ -324,6 +325,27 @@ abstract class BaseRepository
     }
 
     /**
+     * Get paginated
+     *
+     * @param array $conditions conditions
+     * @param array $order      order
+     * @param int   $page       page
+     * @param int   $pack       pack
+     * @param bool  $countAll   count all
+     *
+     * @return Paginator
+     */
+    protected function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null, $countAll = false)
+    {
+        $pagesHelper = new PagesHelper($page, $pack);
+        $totalNumber = $countAll ? $this->countBy($conditions) : null;
+        $items = $this->getBy($conditions, $order, $pagesHelper->limit, $pagesHelper->offset);
+        $paginator = $pagesHelper->getPaginator($items, $totalNumber);
+
+        return $paginator;
+    }
+
+    /**
      * Create select query
      *
      * @param string|array $items     items
@@ -393,6 +415,32 @@ abstract class BaseRepository
     }
 
     /**
+     * Get by query paginated
+     *
+     * @param QueryInterface $query    query
+     * @param array          $params   params
+     * @param int            $page     page
+     * @param int            $pack     pack
+     * @param bool           $countAll count all
+     * @param array          $options  options
+     *
+     * @return Paginator
+     */
+    protected function getByQueryPaginated(QueryInterface $query, array $params = [], $page = 1, $pack = null,
+        $countAll = false, array $options = [])
+    {
+        $pagesHelper = new PagesHelper($page, $pack);
+        $totalNumber = $countAll ? $this->countByQuery($query, $params) : null;
+        if (isset($pagesHelper->limit)) {
+            $query->limit($pagesHelper->limit, $pagesHelper->offset);
+        }
+        $items = $this->getByQuery($query, $params, $options);
+        $paginator = $pagesHelper->getPaginator($items, $totalNumber);
+
+        return $paginator;
+    }
+
+    /**
      * Get all by query
      *
      * @param QueryInterface $query             query
@@ -442,33 +490,47 @@ abstract class BaseRepository
     }
 
     /**
-     * Get paginated
+     * Get all by query paginated
      *
-     * @param array $conditions conditions
-     * @param array $order      order
-     * @param int   $page       page
-     * @param int   $pack       pack
-     * @param bool  $countAll   count all
+     * @param QueryInterface $query             query
+     * @param self[]         $otherRepositories other repositories
+     * @param array          $params            params
+     * @param int            $page              page
+     * @param int            $pack              pack
+     * @param bool           $countAll          count all
+     * @param array          $options           options
      *
      * @return Paginator
      */
-    protected function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null, $countAll = false)
+    protected function getAllByQueryPaginated(QueryInterface $query, array $otherRepositories = [], array $params = [],
+        $page = 1, $pack = null, $countAll = false, array $options = [])
     {
-        $page = max(1, $page);
-
-        if (isset($pack)) {
-            $limit = max(1, $pack);
-            $offset = $limit * ($page - 1);
-        } else {
-            $limit = null;
-            $offset = 0;
+        $pagesHelper = new PagesHelper($page, $pack);
+        $totalNumber = $countAll ? $this->countByQuery($query, $params) : null;
+        if (isset($pagesHelper->limit)) {
+            $query->limit($pagesHelper->limit, $pagesHelper->offset);
         }
-
-        $totalNumber = $countAll ? $this->countBy($conditions) : null;
-        $items = $this->getBy($conditions, $order, $limit, $offset);
-        $paginator = new Paginator($items, $page, $pack, $totalNumber);
+        $items = $this->getAllByQuery($query, $otherRepositories, $params, $options);
+        $paginator = $pagesHelper->getPaginator($items, $totalNumber);
 
         return $paginator;
+    }
+
+    /**
+     * Count by query
+     *
+     * @param QueryInterface $query  query
+     * @param array          $params params
+     *
+     * @return int
+     */
+    protected function countByQuery(QueryInterface $query, array $params = [])
+    {
+        $queryClone = $query->cloneSelect('count(*) as count');
+        $results = $queryClone->execute($params);
+        $count = count($results) === 1 ? (int) $results[0]['count'] : 0;
+
+        return $count;
     }
 
     /**

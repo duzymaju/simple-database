@@ -55,6 +55,42 @@ final class QueryTest extends TestCase
         );
     }
 
+    /** Test cloned select query */
+    public function testClonedSelectQuery()
+    {
+        $query = new Query($this->connectionMock, Command::TYPE_SELECT, 'test_table', 't', [
+            'jt.*', 'ljt.param3', 'rjt.param3',
+        ]);
+        $query
+            ->join('JoinedTable', 'jt', 'jt.param1 = 1')
+            ->leftJoin('LeftJoinedTable', 'ljt', [ 'jt.param2 = ljt.param1', 'ljt.param2 = "w"' ])
+            ->rightJoin('RightJoinedTable', 'rjt', 'jt.param3 = rjt.param1')
+            ->outerJoin('OuterJoinedTable', 'ojt', [ 'ljt.param2 = 3.5' ])
+            ->where([ 'aa = :aa', 'bb = :bb', 'cc = :cc' ])
+            ->groupBy([ 'ljt.param1', 'ljt.param2' ], 'ljt.param1 != ljt.param2')
+            ->orderBy([ 'jt.param2' => 'desc', 'rjt.param1' => 'ASC', 'jt.param3 DESC', 'RAND()' ])
+            ->limit(10, 5)
+            ->bindParam('aa', Query::PARAM_INT)
+            ->bindParam('bb', Query::PARAM_STRING)
+            ->bindParam('cc', Query::PARAM_BOOL)
+        ;
+        $clonedQuery = $query->cloneSelect('ljt.*');
+
+        $this->assertEquals(
+            'SELECT ljt.* FROM test_table t' .
+            ' INNER JOIN JoinedTable jt ON jt.param1 = 1' .
+            ' LEFT OUTER JOIN LeftJoinedTable ljt ON jt.param2 = ljt.param1 && ljt.param2 = "w"' .
+            ' RIGHT OUTER JOIN RightJoinedTable rjt ON jt.param3 = rjt.param1' .
+            ' FULL OUTER JOIN OuterJoinedTable ojt ON ljt.param2 = 3.5' .
+            ' WHERE aa = :aa && bb = :bb && cc = :cc' .
+            ' GROUP BY ljt.param1, ljt.param2' .
+            ' HAVING ljt.param1 != ljt.param2' .
+            ' ORDER BY jt.param2 DESC, rjt.param1 ASC, jt.param3 DESC, RAND()' .
+            ' LIMIT 5, 10',
+            $clonedQuery->toString()
+        );
+    }
+
     /** Test insert query */
     public function testInsertQuery()
     {

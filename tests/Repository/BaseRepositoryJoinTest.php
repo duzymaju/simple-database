@@ -6,6 +6,7 @@ use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Model\ModelInterface;
 use SimpleDatabase\Repository\BaseRepository;
 use SimpleStructure\Exception\NotFoundException;
+use SimpleStructure\Tool\Paginator;
 
 final class BaseRepositoryJoinTest extends TestCase
 {
@@ -31,8 +32,8 @@ final class BaseRepositoryJoinTest extends TestCase
         date_default_timezone_set('Europe/Warsaw');
     }
 
-    /** Test getting by */
-    public function testGettingBy()
+    /** Test getting by query */
+    public function testGettingByQuery()
     {
         $this->connectionMock
             ->expects($this->exactly(1))
@@ -109,6 +110,86 @@ final class BaseRepositoryJoinTest extends TestCase
         $testProductModelInstance->addProductType($testProductTypeModelInstance);
         $testProductTypeModelInstance->setProduct($testProductModelInstance);
         $this->assertEquals($testProductTypeModelInstance, $result);
+    }
+
+    /** Test getting by query paginated */
+    public function testGettingByQueryPaginated()
+    {
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('select')
+            ->with(['pt.id as pt_id', 'pt.product_id as pt_product_id', 'pd.id as pd_id', 'pd.producer_id as pd_producer_id', 'pr.id as pr_id'], 'test_product_type_table', 'pt')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(2))
+            ->method('join')
+            ->withConsecutive(
+                [ 'test_product_table', 'pd', [ 'pt.product_id = pd.id' ] ],
+                [ 'test_producer_table', 'pr', [ 'pd.producer_id = pr.id' ] ]
+            )
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('limit')
+            ->with(5, 10)
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(2))
+            ->method('execute')
+            ->with([])
+            ->willReturnOnConsecutiveCalls([
+                [ 'count' => 27 ],
+            ], [
+                [
+                    'pt_id' => '123',
+                    'pt_product_id' => '39',
+                    'pd_id' => '39',
+                    'pd_producer_id' => '77',
+                    'pr_id' => '77',
+                ],
+            ])
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('cloneSelect')
+            ->with('count(*) as count')
+            ->willReturn($this->queryMock)
+        ;
+
+        $producerRepository = new TestProducerRepository($this->connectionMock);
+        $productRepository = new TestProductRepository($this->connectionMock);
+        $productTypeRepository = new TestProductTypeRepository($this->connectionMock);
+        $producerRepository->setRelatedRepositories($productRepository);
+        $productRepository->setRelatedRepositories($producerRepository, $productTypeRepository);
+        $productTypeRepository->setRelatedRepositories($producerRepository, $productRepository);
+        $results = $productTypeRepository->getStructurePaginated(3, 5);
+
+        /** @var TestProducerModel $testProducerModelInstance */
+        $testProducerModelInstance = $producerRepository->createDbModelInstance([
+            'id' => '77',
+        ]);
+        /** @var TestProductModel $testProductModelInstance */
+        $testProductModelInstance = $productRepository->createDbModelInstance([
+            'id' => '39',
+            'producer_id' => '77',
+        ]);
+        /** @var TestProductTypeModel $testProductTypeModelInstance */
+        $testProductTypeModelInstance = $productTypeRepository->createDbModelInstance([
+            'id' => '123',
+            'product_id' => '39',
+        ]);
+        $testProducerModelInstance->addProduct($testProductModelInstance);
+        $testProductModelInstance->setProducer($testProducerModelInstance);
+        $testProductModelInstance->addProductType($testProductTypeModelInstance);
+        $testProductTypeModelInstance->setProduct($testProductModelInstance);
+        $this->assertInstanceOf(Paginator::class, $results);
+        $this->assertEquals([ $testProductTypeModelInstance ], $results->getArrayCopy());
+        $this->assertEquals(5, $results->pack);
+        $this->assertEquals(3, $results->page);
+        $this->assertEquals(6, $results->pages);
     }
 }
 
@@ -221,6 +302,24 @@ class TestProductTypeRepository extends BaseRepository
         }
 
         return $productTypes[0];
+    }
+
+    public function getStructurePaginated($page, $pack = 20)
+    {
+        $query = $this
+            ->createSelectAllQuery('pt', [
+                'pd' => $this->productRepository,
+                'pr' => $this->producerRepository,
+            ])
+            ->join($this->productRepository->getTableName(), 'pd', [ 'pt.product_id = pd.id' ])
+            ->join($this->producerRepository->getTableName(), 'pr', [ 'pd.producer_id = pr.id' ])
+        ;
+        $productTypes = $this->getAllByQueryPaginated($query, [
+            $this->productRepository,
+            $this->producerRepository,
+        ], [], $page, $pack, true);
+
+        return $productTypes;
     }
 
     public function createDbModelInstance(array $data)

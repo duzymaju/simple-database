@@ -4,6 +4,7 @@ namespace SimpleDatabase\Client\MySql;
 
 use PDO;
 use PDOStatement;
+use ReflectionClass;
 use SimpleDatabase\Client\CommandInterface;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\GroupInterface;
@@ -323,6 +324,31 @@ class Query implements QueryInterface
             $this->statement->fetchAll(PDO::FETCH_ASSOC) : null;
 
         return $results;
+    }
+
+    /**
+     * Clone select
+     *
+     * @param string[]|string $items items
+     *
+     * @return self
+     */
+    public function cloneSelect($items)
+    {
+        $reflection = new ReflectionClass(self::class);
+        /** @var self $queryClone */
+        $queryClone = $reflection->newInstanceWithoutConstructor();
+        $queryClone->client = $this->client;
+        $queryClone->command = new Command(CommandInterface::TYPE_SELECT, $this->getStringList($items));
+        $queryClone->tables = $this->tables;
+        $queryClone->set = $this->set;
+        $queryClone->where = $this->where;
+        $queryClone->order = $this->order;
+        $queryClone->group = $this->group;
+        $queryClone->limit = $this->limit;
+        $queryClone->params = $this->params;
+
+        return $queryClone;
     }
 
     /**

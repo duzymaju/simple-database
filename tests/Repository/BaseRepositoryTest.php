@@ -7,6 +7,7 @@ use SimpleDatabase\Exception\RepositoryException;
 use SimpleDatabase\Model\ModelInterface;
 use SimpleDatabase\Repository\BaseRepository;
 use SimpleDatabase\Structure\Field;
+use SimpleStructure\Tool\Paginator;
 
 final class BaseRepositoryTest extends TestCase
 {
@@ -130,7 +131,7 @@ final class BaseRepositoryTest extends TestCase
         $this->queryMock
             ->expects($this->exactly(1))
             ->method('limit')
-            ->with(10, 5)
+            ->with(5, 10)
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -171,7 +172,7 @@ final class BaseRepositoryTest extends TestCase
             'id' => 'ASC',
             'stringField' => 'desc',
             'Rand',
-        ], 10, 5);
+        ], 5, 10);
 
         $testModelInstance = $repository->createDbModelInstance([
             'id' => '3',
@@ -238,7 +239,7 @@ final class BaseRepositoryTest extends TestCase
         $this->queryMock
             ->expects($this->exactly(1))
             ->method('limit')
-            ->with(10, 5)
+            ->with(5, 10)
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -287,7 +288,7 @@ final class BaseRepositoryTest extends TestCase
                 'stringDbField DESC',
                 'RAND()',
             ])
-            ->limit(10, 5)
+            ->limit(5, 10)
         ;
         $results = $repository->getByQuery($query, [
             ':floatId' => 4.15,
@@ -312,6 +313,145 @@ final class BaseRepositoryTest extends TestCase
             'timestamp' => '1556620496',
         ]);
         $this->assertEquals([ $testModelInstance ], $results);
+    }
+
+    /** Test getting by query paginated */
+    public function testGettingByQueryPaginated()
+    {
+        $this->connectionMock
+            ->expects($this->exactly(1))
+            ->method('select')
+            ->with('tt.*, att.stringDbField as anotherStringField', 'test_table')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('leftJoin')
+            ->with('another_test_table', 'att', 'tt.id = att.testId')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(5))
+            ->method('bindParam')
+            ->withConsecutive(
+                [ ':floatId', QueryInterface::PARAM_FLOAT ],
+                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
+                [ ':jsonAssocStructure', QueryInterface::PARAM_STRING ],
+                [ ':created', QueryInterface::PARAM_STRING ],
+                [ ':timestamp', QueryInterface::PARAM_INT ]
+            )
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('where')
+            ->with([
+                'floatId = :floatId',
+                'jsonStructure = :jsonStructure',
+                'jsonAssocStructure = :jsonAssocStructure',
+                'created = :created',
+                'timestamp = :timestamp',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('orderBy')
+            ->with([
+                'id ASC',
+                'stringDbField DESC',
+                'RAND()',
+            ])
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('limit')
+            ->with(5, 10)
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(1))
+            ->method('cloneSelect')
+            ->with('count(*) as count')
+            ->willReturn($this->queryMock)
+        ;
+        $this->queryMock
+            ->expects($this->exactly(2))
+            ->method('execute')
+            ->with([
+                ':floatId' => 4.15,
+                ':jsonStructure' => '{"a":2}',
+                ':jsonAssocStructure' => '{"b":["b1","b2"]}',
+                ':created' => '2019-04-29 12:34:56',
+                ':timestamp' => 1556620496,
+            ])
+            ->willReturnOnConsecutiveCalls([
+                [ 'count' => 27 ],
+            ], [
+                [
+                    'id' => '3',
+                    'floatId' => '4.15',
+                    'stringDbField' => 'abc',
+                    'boolField' => '0',
+                    'jsonStructure' => '{"a":2}',
+                    'jsonAssocStructure' => '{"b":["b1","b2"]}',
+                    'created' => '2019-04-29 12:34:56',
+                    'timestamp' => '1556620496',
+                    'anotherStringField' => 'def',
+                ],
+            ])
+        ;
+
+        $repository = new TestRepository($this->connectionMock);
+        $query = $repository
+            ->createSelectQuery('tt.*, att.stringDbField as anotherStringField', 'tt')
+            ->leftJoin('another_test_table', 'att', 'tt.id = att.testId')
+            ->bindParam(':floatId', QueryInterface::PARAM_FLOAT)
+            ->bindParam(':jsonStructure', QueryInterface::PARAM_STRING)
+            ->bindParam(':jsonAssocStructure', QueryInterface::PARAM_STRING)
+            ->bindParam(':created', QueryInterface::PARAM_STRING)
+            ->bindParam(':timestamp', QueryInterface::PARAM_INT)
+            ->where([
+                'floatId = :floatId',
+                'jsonStructure = :jsonStructure',
+                'jsonAssocStructure = :jsonAssocStructure',
+                'created = :created',
+                'timestamp = :timestamp',
+            ])
+            ->orderBy([
+                'id ASC',
+                'stringDbField DESC',
+                'RAND()',
+            ])
+        ;
+        $results = $repository->getByQueryPaginated($query, [
+            ':floatId' => 4.15,
+            ':jsonStructure' => '{"a":2}',
+            ':jsonAssocStructure' => '{"b":["b1","b2"]}',
+            ':created' => '2019-04-29 12:34:56',
+            ':timestamp' => 1556620496,
+        ], 3, 5, true, [
+            'onModelCreate' => function (TestModel $model, array $data) {
+                $model->setStringField($model->getStringField() . $data['anotherStringField']);
+            },
+        ]);
+
+        $testModelInstance = $repository->createDbModelInstance([
+            'id' => '3',
+            'floatId' => '4.15',
+            'stringDbField' => 'abcdef',
+            'boolField' => '0',
+            'jsonStructure' => '{"a":2}',
+            'jsonAssocStructure' => '{"b":["b1","b2"]}',
+            'created' => '2019-04-29 12:34:56',
+            'timestamp' => '1556620496',
+        ]);
+        $this->assertInstanceOf(Paginator::class, $results);
+        $this->assertEquals([ $testModelInstance ], $results->getArrayCopy());
+        $this->assertEquals(5, $results->pack);
+        $this->assertEquals(3, $results->page);
+        $this->assertEquals(6, $results->pages);
     }
 
     /** Test inserting element */
@@ -716,6 +856,11 @@ class TestRepository extends BaseRepository
         return parent::getBy($conditions, $order, $limit, $offset);
     }
 
+    public function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null, $countAll = false)
+    {
+        return parent::getPaginated($conditions, $order, $page, $pack, $countAll);
+    }
+
     public function createSelectQuery($items = '*', $tableSlug = null, $tableName = null)
     {
         return parent::createSelectQuery($items, $tableSlug, $tableName);
@@ -726,9 +871,10 @@ class TestRepository extends BaseRepository
         return parent::getByQuery($query, $params, $options);
     }
 
-    public function getPaginated(array $conditions, array $order = [], $page = 1, $pack = null, $countAll = false)
+    public function getByQueryPaginated(QueryInterface $query, array $params = [], $page = 1, $pack = null,
+        $countAll = false, array $options = [])
     {
-        return parent::getPaginated($conditions, $order, $page, $pack, $countAll);
+        return parent::getByQueryPaginated($query, $params, $page, $pack, $countAll, $options);
     }
 
     public function save(ModelInterface $model)

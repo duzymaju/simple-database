@@ -150,4 +150,13 @@ interface QueryInterface extends ToStringInterface
      * @throws DataException
      */
     public function execute(array $params = []);
+
+    /**
+     * Clone select
+     *
+     * @param string[]|string $items items
+     *
+     * @return self
+     */
+    public function cloneSelect($items);
 }
