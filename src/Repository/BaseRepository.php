@@ -458,7 +458,9 @@ abstract class BaseRepository
         };
 
         $allRepositories = [$this];
-        array_push($allRepositories, ...$otherRepositories);
+        if (count($otherRepositories) > 0) {
+            array_push($allRepositories, ...$otherRepositories);
+        }
         $options['onModelCreate'] = function ($model, $data) use ($allRepositories, $otherRepositories) {
             /** @var ModelInfo[] $modelInfos */
             $modelInfos = [];
