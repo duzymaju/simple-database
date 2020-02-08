@@ -233,13 +233,15 @@ class Field
      */
     public function getValueFromModel(ModelInterface $model)
     {
-        $getterMethod = 'get' . ucfirst($this->name);
-        if (!method_exists($model, $getterMethod)) {
-            return null;
+        $getterName = ucfirst($this->name);
+        foreach (['get', 'has', 'is'] as $getterPrefix) {
+            $getterMethod = $getterPrefix . $getterName;
+            if (method_exists($model, $getterMethod)) {
+                return $model->$getterMethod();
+            }
         }
-        $value = $model->$getterMethod();
 
-        return $value;
+        return null;
     }
 
     /**
