@@ -5,7 +5,6 @@ use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Model\ModelInterface;
 use SimpleDatabase\Repository\BaseRepository;
-use SimpleStructure\Exception\NotFoundException;
 use SimpleStructure\Tool\Paginator;
 
 final class BaseRepositoryJoinTest extends TestCase
@@ -86,8 +85,6 @@ final class BaseRepositoryJoinTest extends TestCase
         $producerRepository = new TestProducerRepository($this->connectionMock);
         $productRepository = new TestProductRepository($this->connectionMock);
         $productTypeRepository = new TestProductTypeRepository($this->connectionMock);
-        $producerRepository->setRelatedRepositories($productRepository);
-        $productRepository->setRelatedRepositories($producerRepository, $productTypeRepository);
         $productTypeRepository->setRelatedRepositories($producerRepository, $productRepository);
         $result = $productTypeRepository->getStructureById(123);
 
@@ -162,8 +159,6 @@ final class BaseRepositoryJoinTest extends TestCase
         $producerRepository = new TestProducerRepository($this->connectionMock);
         $productRepository = new TestProductRepository($this->connectionMock);
         $productTypeRepository = new TestProductTypeRepository($this->connectionMock);
-        $producerRepository->setRelatedRepositories($productRepository);
-        $productRepository->setRelatedRepositories($producerRepository, $productTypeRepository);
         $productTypeRepository->setRelatedRepositories($producerRepository, $productRepository);
         $results = $productTypeRepository->getStructurePaginated(3, 5);
 
@@ -201,15 +196,9 @@ class TestProducerRepository extends BaseRepository
 
         $this
             ->setModelClass(TestProducerModel::class)
-            ->setFieldPrefix('pr_')
             ->setStructure('test_producer_table')
             ->addInt('id', null, [ 'id' => true ], true)
         ;
-    }
-
-    public function setRelatedRepositories(TestProductRepository $productRepository)
-    {
-        $this->addRepositoriesRelation($productRepository, 'addProduct');
     }
 
     public function createDbModelInstance(array $data)
@@ -226,19 +215,9 @@ class TestProductRepository extends BaseRepository
 
         $this
             ->setModelClass(TestProductModel::class)
-            ->setFieldPrefix('pd_')
             ->setStructure('test_product_table')
             ->addInt('id', null, [ 'id' => true ], true)
             ->addInt('producerId', 'producer_id')
-        ;
-    }
-
-    public function setRelatedRepositories(TestProducerRepository $producerRepository,
-        TestProductTypeRepository $productTypeRepository)
-    {
-        $this
-            ->addRepositoriesRelation($producerRepository, 'setProducer')
-            ->addRepositoriesRelation($productTypeRepository, 'addProductType')
         ;
     }
 
@@ -262,7 +241,6 @@ class TestProductTypeRepository extends BaseRepository
 
         $this
             ->setModelClass(TestProductTypeModel::class)
-            ->setFieldPrefix('pt_')
             ->setStructure('test_product_type_table')
             ->addInt('id', null, [ 'id' => true ], true)
             ->addInt('productId', 'product_id')
@@ -274,27 +252,25 @@ class TestProductTypeRepository extends BaseRepository
     {
         $this->producerRepository = $producerRepository;
         $this->productRepository = $productRepository;
-        $this->addRepositoriesRelation($productRepository, 'setProduct');
     }
 
     public function getStructureById($id)
     {
-        $query = $this
-            ->createSelectAllQuery('pt', [
-                'pd' => $this->productRepository,
-                'pr' => $this->producerRepository,
-            ])
-            ->join($this->productRepository->getTableName(), 'pd', [ 'pt.product_id = pd.id' ])
-            ->join($this->producerRepository->getTableName(), 'pr', [ 'pd.producer_id = pr.id' ])
+        $modelRelationsQuery = $this
+            ->prepareSelectAllQuery('pt')
+            ->join($this->productRepository, 'pd', [ 'pt.product_id = pd.id' ], [ 'pt' => 'setProduct' ],
+                [ 'pt' => 'addProductType' ])
+            ->join($this->producerRepository, 'pr', [ 'pd.producer_id = pr.id' ], [ 'pd' => 'setProducer' ],
+                [ 'pd' => 'addProduct' ])
+        ;
+        $this
+            ->createSelectAllQuery($modelRelationsQuery)
             ->where([ 'pt.id = :id' ])
             ->limit(1)
             ->bindParam(':id', QueryInterface::PARAM_INT)
         ;
         /** @var TestProductTypeModel[] $productTypes */
-        $productTypes = $this->getAllByQuery($query, [
-            $this->productRepository,
-            $this->producerRepository,
-        ], [
+        $productTypes = $this->getAllByQuery($modelRelationsQuery, [
             ':id' => $id,
         ]);
         if (count($productTypes) === 0) {
@@ -306,18 +282,15 @@ class TestProductTypeRepository extends BaseRepository
 
     public function getStructurePaginated($page, $pack = 20)
     {
-        $query = $this
-            ->createSelectAllQuery('pt', [
-                'pd' => $this->productRepository,
-                'pr' => $this->producerRepository,
-            ])
-            ->join($this->productRepository->getTableName(), 'pd', [ 'pt.product_id = pd.id' ])
-            ->join($this->producerRepository->getTableName(), 'pr', [ 'pd.producer_id = pr.id' ])
+        $modelRelationsQuery = $this
+            ->prepareSelectAllQuery('pt')
+            ->join($this->productRepository, 'pd', [ 'pt.product_id = pd.id' ], [ 'pt' => 'setProduct' ],
+                [ 'pt' => 'addProductType' ])
+            ->join($this->producerRepository, 'pr', [ 'pd.producer_id = pr.id' ], [ 'pd' => 'setProducer' ],
+                [ 'pd' => 'addProduct' ])
         ;
-        $productTypes = $this->getAllByQueryPaginated($query, [
-            $this->productRepository,
-            $this->producerRepository,
-        ], [], $page, $pack, true);
+        $this->createSelectAllQuery($modelRelationsQuery);
+        $productTypes = $this->getAllByQueryPaginated($modelRelationsQuery, [], $page, $pack, true);
 
         return $productTypes;
     }

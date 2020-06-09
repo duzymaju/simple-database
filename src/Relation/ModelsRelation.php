@@ -6,58 +6,164 @@ use SimpleDatabase\Model\ModelInterface;
 use SimpleDatabase\Repository\BaseRepository;
 
 /**
- * Models relation
+ * Model's relation
  */
 final class ModelsRelation
 {
+    /** @var int */
+    private $type;
+
     /** @var BaseRepository */
     private $repository;
 
     /** @var string */
-    private $methodName;
+    private $tableSlug;
 
-    /** @var ModelInterface */
+    /** @var string[]|string */
+    private $condition;
+
+    /** @var array */
+    private $relationsFor = [];
+
+    /** @var array */
+    private $relationsTo = [];
+
+    /** @var ModelInterface|null */
     private $model;
 
     /**
      * Construct
      *
-     * @param BaseRepository $repository repository
-     * @param string         $methodName method name
-     * @param ModelInterface $model      model
+     * @param int             $type       type
+     * @param BaseRepository  $repository repository
+     * @param string          $tableSlug  table slug
+     * @param string[]|string $condition  condition
      */
-    public function __construct(BaseRepository $repository, $methodName, ModelInterface $model)
+    public function __construct($type, BaseRepository $repository, $tableSlug, $condition)
     {
+        $this->type = $type;
         $this->repository = $repository;
-        $this->methodName = $methodName;
-        $this->model = $model;
+        $this->tableSlug = $tableSlug;
+        $this->condition = $condition;
     }
 
     /**
-     * Relates to
+     * Add relation for
      *
-     * @param BaseRepository $repository repository
+     * @param string $relationSlug       relation slug
+     * @param string $relationMethodName relation method name
      *
-     * @return bool
+     * @return self
      */
-    public function relatesTo(BaseRepository $repository)
+    public function addRelationFor($relationSlug, $relationMethodName)
     {
-        $relatesTo = $repository === $this->repository;
+        $this->relationsFor[$relationSlug] = $relationMethodName;
 
-        return $relatesTo;
+        return $this;
+    }
+
+    /**
+     * Add relation to
+     *
+     * @param string $relationSlug       relation slug
+     * @param string $relationMethodName relation method name
+     *
+     * @return self
+     */
+    public function addRelationTo($relationSlug, $relationMethodName)
+    {
+        $this->relationsTo[$relationSlug] = $relationMethodName;
+
+        return $this;
+    }
+
+    /**
+     * Get type
+     *
+     * @return int
+     */
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    /**
+     * Get repository
+     *
+     * @return BaseRepository
+     */
+    public function getRepository()
+    {
+        return $this->repository;
+    }
+
+    /**
+     * Get table slug
+     *
+     * @return string
+     */
+    public function getTableSlug()
+    {
+        return $this->tableSlug;
+    }
+
+    /**
+     * Get condition
+     *
+     * @return string[]|string
+     */
+    public function getCondition()
+    {
+        return $this->condition;
+    }
+
+    /**
+     * Get model
+     *
+     * @return ModelInterface|null
+     */
+    public function getModel()
+    {
+        return $this->model;
     }
 
     /**
      * Set model
      *
-     * @param ModelInterface $model model
+     * @param ModelInterface|null $model model
      *
      * @return self
      */
-    public function setModel(ModelInterface $model)
+    public function setModel(ModelInterface $model = null)
     {
-        $methodName = $this->methodName;
-        $this->model->$methodName($model);
+        $this->model = $model;
+
+        return $this;
+    }
+
+    /**
+     * Bind with model
+     *
+     * @param string              $tableSlug table slug
+     * @param ModelInterface|null $model     model
+     *
+     * @return self
+     */
+    public function bindWith($tableSlug, ModelInterface $model = null)
+    {
+        if (!isset($this->model) || !isset($model)) {
+            return $this;
+        }
+
+        if (array_key_exists($tableSlug, $this->relationsFor)) {
+            $method = $this->relationsFor[$tableSlug];
+            $model->$method($this->model);
+        }
+        if (array_key_exists($tableSlug, $this->relationsTo)) {
+            $method = $this->relationsTo[$tableSlug];
+            $currentModel = $this->model;
+            $currentModel->$method($model);
+        }
 
         return $this;
     }

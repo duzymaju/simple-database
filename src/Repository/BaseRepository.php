@@ -5,12 +5,11 @@ namespace SimpleDatabase\Repository;
 use DateTime;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
+use SimpleDatabase\Client\TableInterface;
 use SimpleDatabase\Exception\DatabaseException;
 use SimpleDatabase\Exception\RepositoryException;
 use SimpleDatabase\Model\ModelInterface;
-use SimpleDatabase\Relation\ModelInfo;
-use SimpleDatabase\Relation\ModelsRelation;
-use SimpleDatabase\Relation\RepositoriesRelation;
+use SimpleDatabase\Query\ModelsRelationsQuery;
 use SimpleDatabase\Structure\Field;
 use SimpleDatabase\Structure\Table;
 use SimpleStructure\Exception\NotFoundException;
@@ -27,12 +26,6 @@ abstract class BaseRepository
 
     /** @var Table|null */
     private $table;
-
-    /** @var string|null */
-    private $fieldPrefix;
-
-    /** @var RepositoriesRelation[] */
-    private $repositoriesRelations = [];
 
     /** @var ModelInterface[] */
     private $dbModelInstances = [];
@@ -62,54 +55,6 @@ abstract class BaseRepository
         $this->modelClass = $modelClass;
 
         return $this;
-    }
-
-    /**
-     * Set field prefix
-     *
-     * @param string $fieldPrefix field prefix
-     *
-     * @return self
-     */
-    protected function setFieldPrefix($fieldPrefix)
-    {
-        $this->fieldPrefix = $fieldPrefix;
-
-        return $this;
-    }
-
-    /**
-     * Add repositories relation
-     *
-     * @param self   $otherRepository other repository
-     * @param string $methodName      method name
-     *
-     * @return self
-     */
-    protected function addRepositoriesRelation(self $otherRepository, $methodName)
-    {
-        $this->repositoriesRelations[] = new RepositoriesRelation($otherRepository, $methodName);
-
-        return $this;
-    }
-
-    /**
-     * Get models relations
-     *
-     * @param self[]         $repositories repositories
-     * @param ModelInterface $model        model
-     *
-     * @return ModelsRelation[]
-     */
-    protected function getModelsRelations(array $repositories, ModelInterface $model)
-    {
-        $modelsRelations = array_map(function (RepositoriesRelation $relation) use ($model) {
-            return $relation->getModelsRelation($model);
-        }, array_filter($this->repositoriesRelations, function (RepositoriesRelation $relation) use ($repositories) {
-            return $relation->relatesToOneOf($repositories);
-        }));
-
-        return $modelsRelations;
     }
 
     /**
@@ -191,7 +136,7 @@ abstract class BaseRepository
     /**
      * Get by ID
      *
-     * @param mixed[] ...$ids IDs
+     * @param mixed ...$ids IDs
      *
      * @return ModelInterface|null
      *
@@ -226,7 +171,7 @@ abstract class BaseRepository
     /**
      * Get by ID or 404
      *
-     * @param mixed[] ...$ids IDs
+     * @param mixed ...$ids IDs
      *
      * @return ModelInterface
      *
@@ -363,21 +308,53 @@ abstract class BaseRepository
     }
 
     /**
+     * Prepare select all query
+     *
+     * @param string $tableSlug table slug
+     *
+     * @return ModelsRelationsQuery
+     */
+    protected function prepareSelectAllQuery($tableSlug)
+    {
+        return new ModelsRelationsQuery($this, $tableSlug);
+    }
+
+    /**
      * Create select all query
      *
-     * @param string $tableSlug         table slug
-     * @param self[] $otherRepositories other repositories
+     * @param ModelsRelationsQuery $modelRelationsQuery model relations query
      *
      * @return QueryInterface
      */
-    protected function createSelectAllQuery($tableSlug, array $otherRepositories = [])
+    protected function createSelectAllQuery(ModelsRelationsQuery $modelRelationsQuery)
     {
         $items = [];
-        array_push($items, ...$this->getFieldsWithPrefix($tableSlug));
-        foreach ($otherRepositories as $otherTableSlug => $otherRepository) {
-            array_push($items, ...$otherRepository->getFieldsWithPrefix($otherTableSlug));
+        foreach ($modelRelationsQuery->getRepositories() as $tableSlug => $repository) {
+            /** @var BaseRepository $repository */
+            array_push($items, ...$repository->getFieldsWithPrefix($tableSlug, $tableSlug));
         }
-        $query = $this->createSelectQuery($items, $tableSlug);
+        $query = $this->createSelectQuery($items, $modelRelationsQuery->getTableSlug());
+        foreach ($modelRelationsQuery->getRelations() as $relation) {
+            switch ($relation->getType()) {
+                case TableInterface::TYPE_LEFT_JOIN:
+                    $query->leftJoin($relation->getRepository()->getTableName(), $relation->getTableSlug(),
+                        $relation->getCondition());
+                    break;
+                case TableInterface::TYPE_RIGHT_JOIN:
+                    $query->rightJoin($relation->getRepository()->getTableName(), $relation->getTableSlug(),
+                        $relation->getCondition());
+                    break;
+                case TableInterface::TYPE_OUTER_JOIN:
+                    $query->outerJoin($relation->getRepository()->getTableName(), $relation->getTableSlug(),
+                        $relation->getCondition());
+                    break;
+                case TableInterface::TYPE_JOIN:
+                default:
+                    $query->join($relation->getRepository()->getTableName(), $relation->getTableSlug(),
+                        $relation->getCondition());
+            }
+        }
+        $modelRelationsQuery->setQuery($query);
 
         return $query;
     }
@@ -443,50 +420,36 @@ abstract class BaseRepository
     /**
      * Get all by query
      *
-     * @param QueryInterface $query             query
-     * @param self[]         $otherRepositories other repositories
-     * @param array          $params            params
-     * @param array          $options           options
+     * @param ModelsRelationsQuery $modelRelationsQuery model relations query
+     * @param array               $params              params
+     * @param array               $options             options
      *
      * @return ModelInterface[]
      */
-    protected function getAllByQuery(QueryInterface $query, array $otherRepositories = [], array $params = [],
-         array $options = [])
+    protected function getAllByQuery(ModelsRelationsQuery $modelRelationsQuery, array $params = [], array $options = [])
     {
-        $options['onModelDataGet'] = function ($data) {
-            return $this->getPrefixedValues($data);
+        $options['onModelDataGet'] = function ($data) use ($modelRelationsQuery) {
+            return $this->getPrefixedValues($data, $modelRelationsQuery->getTableSlug());
         };
 
-        $allRepositories = [$this];
-        if (count($otherRepositories) > 0) {
-            array_push($allRepositories, ...$otherRepositories);
-        }
-        $options['onModelCreate'] = function ($model, $data) use ($allRepositories, $otherRepositories) {
-            /** @var ModelInfo[] $modelInfos */
-            $modelInfos = [];
-            /** @var ModelsRelation[] $modelsRelations */
-            $modelsRelations = [];
-            $modelInfos[] = new ModelInfo($this, $model);
-            foreach ($this->getModelsRelations($allRepositories, $model) as $modelsRelation) {
-                $modelsRelations[] = $modelsRelation;
+        $options['onModelCreate'] = function ($mainModel, $data) use ($modelRelationsQuery) {
+            $relations = $modelRelationsQuery->getRelations();
+            foreach ($relations as $relation) {
+                $repository = $relation->getRepository();
+                $model = $repository->createDbModelInstance(
+                    $repository->getPrefixedValues($data, $relation->getTableSlug())
+                );
+                $relation->setModel($model);
             }
-            foreach ($otherRepositories as $otherRepository) {
-                $otherModel = $otherRepository->createDbModelInstance($otherRepository->getPrefixedValues($data));
-                $modelInfos[] = new ModelInfo($otherRepository, $otherModel);
-                foreach ($otherRepository->getModelsRelations($allRepositories, $otherModel) as $modelsRelation) {
-                    $modelsRelations[] = $modelsRelation;
-                }
-            }
-            foreach ($modelsRelations as $modelsRelationFrom) {
-                foreach ($modelInfos as $modelInfo) {
-                    if ($modelsRelationFrom->relatesTo($modelInfo->repository)) {
-                        $modelsRelationFrom->setModel($modelInfo->model);
-                    }
+            foreach ($modelRelationsQuery->getRelations() as $relationFrom) {
+                $relationFrom->bindWith($modelRelationsQuery->getTableSlug(), $mainModel);
+                foreach ($modelRelationsQuery->getRelations() as $relationTo) {
+                    $relationFrom->bindWith($relationTo->getTableSlug(), $relationTo->getModel());
                 }
             }
         };
 
-        $items = $this->getByQuery($query, $params, $options);
+        $items = $this->getByQuery($modelRelationsQuery->getQuery(), $params, $options);
 
         return $items;
     }
@@ -494,25 +457,25 @@ abstract class BaseRepository
     /**
      * Get all by query paginated
      *
-     * @param QueryInterface $query             query
-     * @param self[]         $otherRepositories other repositories
-     * @param array          $params            params
-     * @param int            $page              page
-     * @param int            $pack              pack
-     * @param bool           $countAll          count all
-     * @param array          $options           options
+     * @param ModelsRelationsQuery $modelRelationsQuery model relations query
+     * @param array                $params              params
+     * @param int                  $page                page
+     * @param int                  $pack                pack
+     * @param bool                 $countAll            count all
+     * @param array                $options             options
      *
      * @return Paginator
      */
-    protected function getAllByQueryPaginated(QueryInterface $query, array $otherRepositories = [], array $params = [],
-        $page = 1, $pack = null, $countAll = false, array $options = [])
+    protected function getAllByQueryPaginated(ModelsRelationsQuery $modelRelationsQuery, array $params = [], $page = 1,
+        $pack = null, $countAll = false, array $options = [])
     {
         $pagesHelper = new PagesHelper($page, $pack);
+        $query = $modelRelationsQuery->getQuery();
         $totalNumber = $countAll ? $this->countByQuery($query, $params) : null;
         if (isset($pagesHelper->limit)) {
             $query->limit($pagesHelper->limit, $pagesHelper->offset);
         }
-        $items = $this->getAllByQuery($query, $otherRepositories, $params, $options);
+        $items = $this->getAllByQuery($modelRelationsQuery, $params, $options);
         $paginator = $pagesHelper->getPaginator($items, $totalNumber);
 
         return $paginator;
@@ -634,40 +597,28 @@ abstract class BaseRepository
     }
 
     /**
-     * Create model instance from DB
-     *
-     * @param array    $data     data
-     * @param callable $callback callback
-     *
-     * @return ModelInterface
-     *
-     * @deprecated This method is deprecated and will be removed in v0.2.0. Use createDbModelInstance instead.
-     */
-    protected function createModelInstanceFromDb(array $data, callable $callback = null)
-    {
-        $model = $this->createDbModelInstance($data);
-        if (isset($callback)) {
-            $callback($model, $data);
-        }
-
-        return $model;
-    }
-
-    /**
      * Create DB model instance
      *
      * @param array $data data
      *
-     * @return ModelInterface
+     * @return ModelInterface|null
      */
     protected function createDbModelInstance(array $data)
     {
+        $modelExists = false;
         $model = new $this->modelClass();
         foreach ($this->table->getFields() as $field) {
             if (array_key_exists($field->getDbName(), $data)) {
                 $dbValue = $data[$field->getDbName()];
-                $field->setValueToModel($model, $field->getValue($dbValue));
+                $value = $field->getValue($dbValue);
+                if (!$modelExists && isset($value)) {
+                    $modelExists = true;
+                }
+                $field->setValueToModel($model, $value);
             }
+        }
+        if (!$modelExists) {
+            return null;
         }
         $this->dbModelInstances[] = $model;
 
@@ -717,20 +668,17 @@ abstract class BaseRepository
     /**
      * Get fields with prefix
      *
-     * @param string|null $tableSlug table slug
+     * @param string $tableSlug   table slug
+     * @param string $fieldPrefix field prefix
      *
      * @return string[]
      *
      * @throws RepositoryException
      */
-    protected function getFieldsWithPrefix($tableSlug = null)
+    protected function getFieldsWithPrefix($tableSlug, $fieldPrefix)
     {
-        if (empty($this->fieldPrefix)) {
-            throw new RepositoryException('Field prefix has to be defined.');
-        }
-        $fields = array_map(function (Field $field) use ($tableSlug) {
-            return (!empty($tableSlug) ? $tableSlug . '.' : '') . $field->getDbName() . ' as ' . $this->fieldPrefix .
-                $field->getDbName();
+        $fields = array_map(function (Field $field) use ($fieldPrefix, $tableSlug) {
+            return $tableSlug . '.' . $field->getDbName() . ' as ' . $fieldPrefix . '_' . $field->getDbName();
         }, array_values($this->table->getFields()));
 
         return $fields;
@@ -739,20 +687,18 @@ abstract class BaseRepository
     /**
      * Get prefixed values
      *
-     * @param array $data data
+     * @param array  $data        data
+     * @param string $fieldPrefix field prefix
      *
      * @return array
      */
-    protected function getPrefixedValues(array $data)
+    protected function getPrefixedValues(array $data, $fieldPrefix)
     {
-        if (!isset($this->fieldPrefix)) {
-            return $data;
-        }
-
-        $prefixLength = strlen($this->fieldPrefix);
+        $fieldPrefix .= '_';
+        $prefixLength = strlen($fieldPrefix);
         $filteredData = [];
         foreach ($data as $key => $value) {
-            if (strpos($key, $this->fieldPrefix) === 0) {
+            if (strpos($key, $fieldPrefix) === 0) {
                 $filteredData[substr($key, $prefixLength)] = $value;
             }
         }
