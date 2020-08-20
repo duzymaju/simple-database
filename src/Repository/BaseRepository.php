@@ -272,11 +272,11 @@ abstract class BaseRepository
     /**
      * Get paginated
      *
-     * @param array $conditions conditions
-     * @param array $order      order
-     * @param int   $page       page
-     * @param int   $pack       pack
-     * @param bool  $countAll   count all
+     * @param array    $conditions conditions
+     * @param array    $order      order
+     * @param int      $page       page
+     * @param int|null $pack       pack
+     * @param bool     $countAll   count all
      *
      * @return Paginator
      */
@@ -397,7 +397,7 @@ abstract class BaseRepository
      * @param QueryInterface $query    query
      * @param array          $params   params
      * @param int            $page     page
-     * @param int            $pack     pack
+     * @param int|null       $pack     pack
      * @param bool           $countAll count all
      * @param array          $options  options
      *
@@ -460,7 +460,7 @@ abstract class BaseRepository
      * @param ModelsRelationsQuery $modelRelationsQuery model relations query
      * @param array                $params              params
      * @param int                  $page                page
-     * @param int                  $pack                pack
+     * @param int|null             $pack                pack
      * @param bool                 $countAll            count all
      * @param array                $options             options
      *
