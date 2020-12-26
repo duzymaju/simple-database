@@ -3,19 +3,18 @@
 namespace SimpleDatabase\Client\MySql;
 
 use DateTime;
-use DateTimeZone;
 use Exception;
 use PDO;
 use SimpleDatabase\Client\CommandInterface;
-use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
+use SimpleDatabase\Client\SqlConnectionInterface;
 use SimpleDatabase\Exception\DatabaseException;
 use SimpleStructure\Tool\Parser;
 
 /**
  * Class Connection
  */
-class Connection implements ConnectionInterface
+class Connection implements SqlConnectionInterface
 {
     /** @var PDO */
     private $client;
@@ -92,9 +91,7 @@ class Connection implements ConnectionInterface
      */
     public function insert($tableName, $tableSlug = null)
     {
-        $query = new Query($this, CommandInterface::TYPE_INSERT, $tableName, $tableSlug);
-
-        return $query;
+        return new Query($this, CommandInterface::TYPE_INSERT, $tableName, $tableSlug);
     }
 
     /**
@@ -107,9 +104,7 @@ class Connection implements ConnectionInterface
      */
     public function update($tableName, $tableSlug = null)
     {
-        $query = new Query($this, CommandInterface::TYPE_UPDATE, $tableName, $tableSlug);
-
-        return $query;
+        return new Query($this, CommandInterface::TYPE_UPDATE, $tableName, $tableSlug);
     }
 
     /**
@@ -122,9 +117,31 @@ class Connection implements ConnectionInterface
      */
     public function delete($tableName, $tableSlug = null)
     {
-        $query = new Query($this, CommandInterface::TYPE_DELETE, $tableName, $tableSlug);
+        return new Query($this, CommandInterface::TYPE_DELETE, $tableName, $tableSlug);
+    }
 
-        return $query;
+    /**
+     * Query
+     *
+     * @param string $statement statement
+     *
+     * @return array
+     *
+     * @throws DatabaseException
+     */
+    public function query($statement)
+    {
+        try {
+            return $this->client
+                ->query($statement)
+                ->fetchAll()
+            ;
+        } catch (Exception $exception) {
+            throw new DatabaseException(
+                sprintf('Statement\'s execution failed: %s', $exception->getMessage()), $exception->getCode(),
+                $exception
+            );
+        }
     }
 
     /**
@@ -225,8 +242,7 @@ class Connection implements ConnectionInterface
         $hours = (int) floor($absoluteOffset / 3600);
         $minutes = (int) round($absoluteOffset / 60 - $hours * 60);
         $sign = $offset >= 0 ? 1 : -1;
-        $offsetString = sprintf('%+d:%02d', $sign * $hours, $minutes);
 
-        return $offsetString;
+        return sprintf('%+d:%02d', $sign * $hours, $minutes);
     }
 }
