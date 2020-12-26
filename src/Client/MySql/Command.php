@@ -25,7 +25,7 @@ class Command implements CommandInterface
     public function __construct($type, array $items = [])
     {
         $this->type = $type;
-        $this->items = count($items) > 0 ? $items : [ '*' ];
+        $this->items = count($items) > 0 ? $items : ['*'];
     }
 
     /**

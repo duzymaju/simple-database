@@ -20,7 +20,7 @@ class Limit implements LimitInterface
      */
     public function __construct($limit, $offset = null)
     {
-        $this->limit = [ $limit ];
+        $this->limit = [$limit];
         if (isset($offset)) {
             array_unshift($this->limit, $offset);
         }

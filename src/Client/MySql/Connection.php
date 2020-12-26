@@ -52,8 +52,8 @@ class Connection implements SqlConnectionInterface
             $this->client->query(sprintf('SET time_zone = "%s"', $this->getOffsetString()));
         } catch (Exception $exception) {
             throw new DatabaseException(
-                sprintf('Error occurred during connection trial: %s', $exception->getMessage()), $exception->getCode(),
-                $exception
+                sprintf('Error occurred during connection trial: %s', $exception->getMessage()),
+                (int) $exception->getCode(), $exception
             );
         }
     }
@@ -124,22 +124,21 @@ class Connection implements SqlConnectionInterface
      * Query
      *
      * @param string $statement statement
+     * @param bool   $fetchAll  fetch all
      *
-     * @return array
+     * @return array|null
      *
      * @throws DatabaseException
      */
-    public function query($statement)
+    public function query($statement, $fetchAll = false)
     {
         try {
-            return $this->client
-                ->query($statement)
-                ->fetchAll()
-            ;
+            $pdoStatement = $this->client->query($statement);
+            return $fetchAll ? $pdoStatement->fetchAll() : null;
         } catch (Exception $exception) {
             throw new DatabaseException(
-                sprintf('Statement\'s execution failed: %s', $exception->getMessage()), $exception->getCode(),
-                $exception
+                sprintf('Statement\'s execution failed: %s', $exception->getMessage()),
+                (int) $exception->getCode(), $exception
             );
         }
     }

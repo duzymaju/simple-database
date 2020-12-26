@@ -221,7 +221,7 @@ class Query implements QueryInterface
     {
         $this->resetStatement();
         if (is_string($order)) {
-            $this->order = new Order(array_combine([ $order ], [ Order::ASC ]));
+            $this->order = new Order(array_combine([$order], [Order::ASC]));
         } elseif (is_array($order)) {
             $this->order = new Order(array_filter($order, function ($direction, $column) {
                 if (is_numeric($column) && is_string($direction) && !empty($direction)) {
@@ -387,7 +387,7 @@ class Query implements QueryInterface
      */
     private function getStringList($values)
     {
-        $valuesList = is_array($values) ? array_values($values) : [ $values ];
+        $valuesList = is_array($values) ? array_values($values) : [$values];
         $stringList = array_filter($valuesList, function ($value) {
             return is_string($value) && !empty($value);
         });
