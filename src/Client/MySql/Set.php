@@ -33,8 +33,6 @@ class Set implements SetInterface
             return '';
         }
 
-        $statement = ' SET ' . implode(', ', $this->set);
-
-        return $statement;
+        return ' SET ' . implode(', ', $this->set);
     }
 }

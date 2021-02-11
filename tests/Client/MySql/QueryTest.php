@@ -28,12 +28,12 @@ final class QueryTest extends TestCase
         ]);
         $query
             ->join('JoinedTable', 'jt', 'jt.param1 = 1')
-            ->leftJoin('LeftJoinedTable', 'ljt', [ 'jt.param2 = ljt.param1', 'ljt.param2 = "w"' ])
+            ->leftJoin('LeftJoinedTable', 'ljt', ['jt.param2 = ljt.param1', 'ljt.param2 = "w"'])
             ->rightJoin('RightJoinedTable', 'rjt', 'jt.param3 = rjt.param1')
-            ->outerJoin('OuterJoinedTable', 'ojt', [ 'ljt.param2 = 3.5' ])
-            ->where([ 'aa = :aa', 'bb = :bb', 'cc = :cc' ])
-            ->groupBy([ 'ljt.param1', 'ljt.param2' ], 'ljt.param1 != ljt.param2')
-            ->orderBy([ 'jt.param2' => 'desc', 'rjt.param1' => 'ASC', 'jt.param3 DESC', 'RAND()' ])
+            ->outerJoin('OuterJoinedTable', 'ojt', ['ljt.param2 = 3.5'])
+            ->where(['aa = :aa', 'bb = :bb', 'cc = :cc'])
+            ->groupBy(['ljt.param1', 'ljt.param2'], 'ljt.param1 != ljt.param2')
+            ->orderBy(['jt.param2' => 'desc', 'rjt.param1' => 'ASC', 'jt.param3 DESC', 'RAND()'])
             ->limit(10, 5)
             ->bindParam('aa', Query::PARAM_INT)
             ->bindParam('bb', Query::PARAM_STRING)
@@ -63,12 +63,12 @@ final class QueryTest extends TestCase
         ]);
         $query
             ->join('JoinedTable', 'jt', 'jt.param1 = 1')
-            ->leftJoin('LeftJoinedTable', 'ljt', [ 'jt.param2 = ljt.param1', 'ljt.param2 = "w"' ])
+            ->leftJoin('LeftJoinedTable', 'ljt', ['jt.param2 = ljt.param1', 'ljt.param2 = "w"'])
             ->rightJoin('RightJoinedTable', 'rjt', 'jt.param3 = rjt.param1')
-            ->outerJoin('OuterJoinedTable', 'ojt', [ 'ljt.param2 = 3.5' ])
-            ->where($query->allOf([ 'aa = :aa', $query->anyOf([ 'bb = :bb', 'cc = :cc' ]) ]))
-            ->groupBy([ 'ljt.param1', 'ljt.param2' ], 'ljt.param1 != ljt.param2')
-            ->orderBy([ 'jt.param2' => 'desc', 'rjt.param1' => 'ASC', 'jt.param3 DESC', 'RAND()' ])
+            ->outerJoin('OuterJoinedTable', 'ojt', ['ljt.param2 = 3.5'])
+            ->where($query->allOf(['aa = :aa', $query->anyOf(['bb = :bb', 'cc = :cc'])]))
+            ->groupBy(['ljt.param1', 'ljt.param2'], 'ljt.param1 != ljt.param2')
+            ->orderBy(['jt.param2' => 'desc', 'rjt.param1' => 'ASC', 'jt.param3 DESC', 'RAND()'])
             ->limit(10, 5)
             ->bindParam('aa', Query::PARAM_INT)
             ->bindParam('bb', Query::PARAM_STRING)
@@ -96,7 +96,7 @@ final class QueryTest extends TestCase
     {
         $query = new Query($this->connectionMock, Command::TYPE_INSERT, 'test_table');
         $query
-            ->set([ 'param1 = :param1', 'param2 = :param2', 'param3 = :param3' ])
+            ->set(['param1 = :param1', 'param2 = :param2', 'param3 = :param3'])
             ->bindParam('param1', Query::PARAM_INT)
             ->bindParam('param2', Query::PARAM_STRING)
             ->bindParam('param3', Query::PARAM_FLOAT)
@@ -113,7 +113,7 @@ final class QueryTest extends TestCase
     {
         $query = new Query($this->connectionMock, Command::TYPE_UPDATE, 'test_table', 't', []);
         $query
-            ->set([ 'param2 = :param2' ])
+            ->set(['param2 = :param2'])
             ->where('param1 = :param1')
             ->bindParam('param1', Query::PARAM_INT)
             ->bindParam('param2', Query::PARAM_STRING)
@@ -128,7 +128,7 @@ final class QueryTest extends TestCase
         $query = new Query($this->connectionMock, Command::TYPE_DELETE, 'test_table', null, [
             'itemOfImproperList',
         ]);
-        $query->where([ 'aa = :aa', 'bb = :bb' ]);
+        $query->where(['aa = :aa', 'bb = :bb']);
 
         $this->assertEquals('DELETE FROM test_table WHERE (aa = :aa && bb = :bb)', $query->toString());
     }

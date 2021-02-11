@@ -128,9 +128,8 @@ abstract class BaseRepository
 
         $results = $query->execute($params);
         $result = array_shift($results);
-        $count = isset($result) ? (int) $result['count'] : 0;
 
-        return $count;
+        return isset($result) ? (int) $result['count'] : 0;
     }
 
     /**
@@ -163,9 +162,8 @@ abstract class BaseRepository
         }
 
         $conditions = array_combine($names, $ids);
-        $item = $this->getOneBy($conditions);
 
-        return $item;
+        return $this->getOneBy($conditions);
     }
 
     /**
@@ -199,9 +197,8 @@ abstract class BaseRepository
     protected function getOneBy(array $conditions, array $order = [])
     {
         $items = $this->getBy($conditions, $order, 1);
-        $item = array_shift($items);
 
-        return $item;
+        return array_shift($items);
     }
 
     /**
@@ -264,9 +261,7 @@ abstract class BaseRepository
             $query->limit($limit, $offset);
         }
 
-        $items = $this->getByQuery($query, $params);
-
-        return $items;
+        return $this->getByQuery($query, $params);
     }
 
     /**
@@ -285,9 +280,8 @@ abstract class BaseRepository
         $pagesHelper = new PagesHelper($page, $pack);
         $totalNumber = $countAll ? $this->countBy($conditions) : null;
         $items = $this->getBy($conditions, $order, $pagesHelper->limit, $pagesHelper->offset);
-        $paginator = $pagesHelper->getPaginator($items, $totalNumber);
 
-        return $paginator;
+        return $pagesHelper->getPaginator($items, $totalNumber);
     }
 
     /**
@@ -302,9 +296,8 @@ abstract class BaseRepository
     protected function createSelectQuery($items = '*', $tableSlug = null, $tableName = null)
     {
         $tableName = empty($tableName) ? $this->table->getName() : $tableName;
-        $query = $this->connection->select($items, $tableName, $tableSlug);
 
-        return $query;
+        return $this->connection->select($items, $tableName, $tableSlug);
     }
 
     /**
@@ -412,9 +405,8 @@ abstract class BaseRepository
             $query->limit($pagesHelper->limit, $pagesHelper->offset);
         }
         $items = $this->getByQuery($query, $params, $options);
-        $paginator = $pagesHelper->getPaginator($items, $totalNumber);
 
-        return $paginator;
+        return $pagesHelper->getPaginator($items, $totalNumber);
     }
 
     /**
@@ -449,9 +441,7 @@ abstract class BaseRepository
             }
         };
 
-        $items = $this->getByQuery($modelRelationsQuery->getQuery(), $params, $options);
-
-        return $items;
+        return $this->getByQuery($modelRelationsQuery->getQuery(), $params, $options);
     }
 
     /**
@@ -476,9 +466,8 @@ abstract class BaseRepository
             $query->limit($pagesHelper->limit, $pagesHelper->offset);
         }
         $items = $this->getAllByQuery($modelRelationsQuery, $params, $options);
-        $paginator = $pagesHelper->getPaginator($items, $totalNumber);
 
-        return $paginator;
+        return $pagesHelper->getPaginator($items, $totalNumber);
     }
 
     /**
@@ -493,9 +482,8 @@ abstract class BaseRepository
     {
         $queryClone = $query->cloneSelect('count(*) as count');
         $results = $queryClone->execute($params);
-        $count = count($results) === 1 ? (int) $results[0]['count'] : 0;
 
-        return $count;
+        return count($results) === 1 ? (int) $results[0]['count'] : 0;
     }
 
     /**
@@ -660,9 +648,7 @@ abstract class BaseRepository
      */
     protected function getTableName()
     {
-        $tableName = isset($this->table) ? $this->table->getName() : null;
-
-        return $tableName;
+        return isset($this->table) ? $this->table->getName() : null;
     }
 
     /**
@@ -677,11 +663,9 @@ abstract class BaseRepository
      */
     protected function getFieldsWithPrefix($tableSlug, $fieldPrefix)
     {
-        $fields = array_map(function (Field $field) use ($fieldPrefix, $tableSlug) {
+        return array_map(function (Field $field) use ($fieldPrefix, $tableSlug) {
             return $tableSlug . '.' . $field->getDbName() . ' as ' . $fieldPrefix . '_' . $field->getDbName();
         }, array_values($this->table->getFields()));
-
-        return $fields;
     }
 
     /**

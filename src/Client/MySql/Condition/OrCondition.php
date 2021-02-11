@@ -17,10 +17,8 @@ class OrCondition extends ArrayObject implements ConditionGroupInterface
      */
     public function toQuery()
     {
-        $queryPart = sprintf('(%s)', implode(' || ', array_map(function ($condition) {
+        return sprintf('(%s)', implode(' || ', array_map(function ($condition) {
             return $condition instanceof ConditionGroupInterface ? $condition->toQuery() : $condition;
         }, $this->getArrayCopy())));
-
-        return $queryPart;
     }
 }

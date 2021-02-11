@@ -76,9 +76,8 @@ class Connection implements SqlConnectionInterface
             }
             $items = $itemsList;
         }
-        $query = new Query($this, CommandInterface::TYPE_SELECT, $tableName, $tableSlug, $items);
 
-        return $query;
+        return new Query($this, CommandInterface::TYPE_SELECT, $tableName, $tableSlug, $items);
     }
 
     /**

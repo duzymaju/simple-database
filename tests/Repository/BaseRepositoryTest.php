@@ -46,10 +46,10 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(4))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':boolField', QueryInterface::PARAM_BOOL ],
-                [ ':stringDbField1', QueryInterface::PARAM_STRING ],
-                [ ':stringDbField2', QueryInterface::PARAM_STRING ],
-                [ ':stringDbField3', QueryInterface::PARAM_NULL ]
+                [':boolField', QueryInterface::PARAM_BOOL],
+                [':stringDbField1', QueryInterface::PARAM_STRING],
+                [':stringDbField2', QueryInterface::PARAM_STRING],
+                [':stringDbField3', QueryInterface::PARAM_NULL]
             )
             ->willReturn($this->queryMock)
         ;
@@ -72,14 +72,14 @@ final class BaseRepositoryTest extends TestCase
                 ':stringDbField3' => null,
             ])
             ->willReturn([
-                [ 'count' => '5' ],
+                ['count' => '5'],
             ])
         ;
 
         $repository = new TestRepository($this->connectionMock);
         $result = $repository->countBy([
             'boolField' => true,
-            'stringField' => [ 'abc', 'def', null ],
+            'stringField' => ['abc', 'def', null],
         ]);
 
         $this->assertEquals(5, $result);
@@ -98,11 +98,11 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(5))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':floatId', QueryInterface::PARAM_FLOAT ],
-                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
-                [ ':jsonAssocStructure', QueryInterface::PARAM_STRING ],
-                [ ':created', QueryInterface::PARAM_STRING ],
-                [ ':timestamp', QueryInterface::PARAM_INT ]
+                [':floatId', QueryInterface::PARAM_FLOAT],
+                [':jsonStructure', QueryInterface::PARAM_STRING],
+                [':jsonAssocStructure', QueryInterface::PARAM_STRING],
+                [':created', QueryInterface::PARAM_STRING],
+                [':timestamp', QueryInterface::PARAM_INT]
             )
             ->willReturn($this->queryMock)
         ;
@@ -160,7 +160,7 @@ final class BaseRepositoryTest extends TestCase
 
         $objectStructure1 = new stdClass();
         $objectStructure1->a = 2;
-        $objectStructure2 = [ 'b' => [ 'b1', 'b2' ] ];
+        $objectStructure2 = ['b' => ['b1', 'b2']];
         $repository = new TestRepository($this->connectionMock);
         $results = $repository->getBy([
             'id2' => 4.15,
@@ -184,7 +184,7 @@ final class BaseRepositoryTest extends TestCase
             'created' => '2019-04-29 12:34:56',
             'timestamp' => '1556620496',
         ]);
-        $this->assertEquals([ $testModelInstance ], $results);
+        $this->assertEquals([$testModelInstance], $results);
     }
 
     /** Test getting by query */
@@ -206,11 +206,11 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(5))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':floatId', QueryInterface::PARAM_FLOAT ],
-                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
-                [ ':jsonAssocStructure', QueryInterface::PARAM_STRING ],
-                [ ':created', QueryInterface::PARAM_STRING ],
-                [ ':timestamp', QueryInterface::PARAM_INT ]
+                [':floatId', QueryInterface::PARAM_FLOAT],
+                [':jsonStructure', QueryInterface::PARAM_STRING],
+                [':jsonAssocStructure', QueryInterface::PARAM_STRING],
+                [':created', QueryInterface::PARAM_STRING],
+                [':timestamp', QueryInterface::PARAM_INT]
             )
             ->willReturn($this->queryMock)
         ;
@@ -312,7 +312,7 @@ final class BaseRepositoryTest extends TestCase
             'created' => '2019-04-29 12:34:56',
             'timestamp' => '1556620496',
         ]);
-        $this->assertEquals([ $testModelInstance ], $results);
+        $this->assertEquals([$testModelInstance], $results);
     }
 
     /** Test getting by query paginated */
@@ -334,11 +334,11 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(5))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':floatId', QueryInterface::PARAM_FLOAT ],
-                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
-                [ ':jsonAssocStructure', QueryInterface::PARAM_STRING ],
-                [ ':created', QueryInterface::PARAM_STRING ],
-                [ ':timestamp', QueryInterface::PARAM_INT ]
+                [':floatId', QueryInterface::PARAM_FLOAT],
+                [':jsonStructure', QueryInterface::PARAM_STRING],
+                [':jsonAssocStructure', QueryInterface::PARAM_STRING],
+                [':created', QueryInterface::PARAM_STRING],
+                [':timestamp', QueryInterface::PARAM_INT]
             )
             ->willReturn($this->queryMock)
         ;
@@ -387,7 +387,7 @@ final class BaseRepositoryTest extends TestCase
                 ':timestamp' => 1556620496,
             ])
             ->willReturnOnConsecutiveCalls([
-                [ 'count' => 27 ],
+                ['count' => 27],
             ], [
                 [
                     'id' => '3',
@@ -448,7 +448,7 @@ final class BaseRepositoryTest extends TestCase
             'timestamp' => '1556620496',
         ]);
         $this->assertInstanceOf(Paginator::class, $results);
-        $this->assertEquals([ $testModelInstance ], $results->getArrayCopy());
+        $this->assertEquals([$testModelInstance], $results->getArrayCopy());
         $this->assertEquals(5, $results->pack);
         $this->assertEquals(3, $results->page);
         $this->assertEquals(6, $results->pages);
@@ -467,14 +467,14 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(8))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':floatId', QueryInterface::PARAM_FLOAT ],
-                [ ':stringDbField', QueryInterface::PARAM_STRING ],
-                [ ':boolField', QueryInterface::PARAM_BOOL ],
-                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
-                [ ':jsonAssocStructure', QueryInterface::PARAM_NULL ],
-                [ ':created', QueryInterface::PARAM_STRING ],
-                [ ':updated', QueryInterface::PARAM_STRING ],
-                [ ':timestamp', QueryInterface::PARAM_NULL ]
+                [':floatId', QueryInterface::PARAM_FLOAT],
+                [':stringDbField', QueryInterface::PARAM_STRING],
+                [':boolField', QueryInterface::PARAM_BOOL],
+                [':jsonStructure', QueryInterface::PARAM_STRING],
+                [':jsonAssocStructure', QueryInterface::PARAM_NULL],
+                [':created', QueryInterface::PARAM_STRING],
+                [':updated', QueryInterface::PARAM_STRING],
+                [':timestamp', QueryInterface::PARAM_NULL]
             )
             ->willReturn($this->queryMock)
         ;
@@ -542,15 +542,15 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(9))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':floatId', QueryInterface::PARAM_FLOAT ],
-                [ ':stringDbField', QueryInterface::PARAM_STRING ],
-                [ ':boolField', QueryInterface::PARAM_BOOL ],
-                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
-                [ ':jsonAssocStructure', QueryInterface::PARAM_NULL ],
-                [ ':updated', QueryInterface::PARAM_STRING ],
-                [ ':timestamp', QueryInterface::PARAM_NULL ],
-                [ ':id', QueryInterface::PARAM_INT ],
-                [ ':floatId', QueryInterface::PARAM_FLOAT ]
+                [':floatId', QueryInterface::PARAM_FLOAT],
+                [':stringDbField', QueryInterface::PARAM_STRING],
+                [':boolField', QueryInterface::PARAM_BOOL],
+                [':jsonStructure', QueryInterface::PARAM_STRING],
+                [':jsonAssocStructure', QueryInterface::PARAM_NULL],
+                [':updated', QueryInterface::PARAM_STRING],
+                [':timestamp', QueryInterface::PARAM_NULL],
+                [':id', QueryInterface::PARAM_INT],
+                [':floatId', QueryInterface::PARAM_FLOAT]
             )
             ->willReturn($this->queryMock)
         ;
@@ -620,14 +620,14 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(8))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':floatId', QueryInterface::PARAM_FLOAT ],
-                [ ':stringDbField', QueryInterface::PARAM_STRING ],
-                [ ':boolField', QueryInterface::PARAM_BOOL ],
-                [ ':jsonStructure', QueryInterface::PARAM_STRING ],
-                [ ':jsonAssocStructure', QueryInterface::PARAM_NULL ],
-                [ ':created', QueryInterface::PARAM_STRING ],
-                [ ':updated', QueryInterface::PARAM_STRING ],
-                [ ':timestamp', QueryInterface::PARAM_NULL ]
+                [':floatId', QueryInterface::PARAM_FLOAT],
+                [':stringDbField', QueryInterface::PARAM_STRING],
+                [':boolField', QueryInterface::PARAM_BOOL],
+                [':jsonStructure', QueryInterface::PARAM_STRING],
+                [':jsonAssocStructure', QueryInterface::PARAM_NULL],
+                [':created', QueryInterface::PARAM_STRING],
+                [':updated', QueryInterface::PARAM_STRING],
+                [':timestamp', QueryInterface::PARAM_NULL]
             )
             ->willReturn($this->queryMock)
         ;
@@ -680,8 +680,8 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(2))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':id', QueryInterface::PARAM_INT ],
-                [ ':floatId', QueryInterface::PARAM_FLOAT ]
+                [':id', QueryInterface::PARAM_INT],
+                [':floatId', QueryInterface::PARAM_FLOAT]
             )
             ->willReturn($selectQueryMock)
         ;
@@ -754,8 +754,8 @@ final class BaseRepositoryTest extends TestCase
             ->expects($this->exactly(2))
             ->method('bindParam')
             ->withConsecutive(
-                [ ':id', QueryInterface::PARAM_INT ],
-                [ ':floatId', QueryInterface::PARAM_FLOAT ]
+                [':id', QueryInterface::PARAM_INT],
+                [':floatId', QueryInterface::PARAM_FLOAT]
             )
             ->willReturn($this->queryMock)
         ;
@@ -814,14 +814,14 @@ class TestRepository extends BaseRepository
         $this
             ->setModelClass('TestModel')
             ->setStructure('test_table')
-            ->addInt('id', null, [ 'id' => true ], true)
-            ->addFloat('id2', 'floatId', [ 'id' => true ])
+            ->addInt('id', null, ['id' => true], true)
+            ->addFloat('id2', 'floatId', ['id' => true])
             ->addString('stringField', 'stringDbField')
             ->addBool('boolField')
             ->addJson('jsonStructure')
             ->addJsonAssoc('jsonAssocStructure')
-            ->addDateTime('createdAt', 'created', [ 'createdAt' => true ])
-            ->addDateTime('updatedAt', 'updated', [ 'updatedAt' => true ])
+            ->addDateTime('createdAt', 'created', ['createdAt' => true])
+            ->addDateTime('updatedAt', 'updated', ['updatedAt' => true])
             ->addDateTimeTimestamp('time', 'timestamp')
         ;
     }

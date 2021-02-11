@@ -44,15 +44,15 @@ final class BaseRepositoryJoinTest extends TestCase
             ->expects($this->exactly(2))
             ->method('join')
             ->withConsecutive(
-                [ 'test_product_table', 'pd', [ 'pt.product_id = pd.id' ] ],
-                [ 'test_producer_table', 'pr', [ 'pd.producer_id = pr.id' ] ]
+                ['test_product_table', 'pd', ['pt.product_id = pd.id']],
+                ['test_producer_table', 'pr', ['pd.producer_id = pr.id']]
             )
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
             ->expects($this->exactly(1))
             ->method('where')
-            ->with([ 'pt.id = :id' ])
+            ->with(['pt.id = :id'])
             ->willReturn($this->queryMock)
         ;
         $this->queryMock
@@ -70,7 +70,7 @@ final class BaseRepositoryJoinTest extends TestCase
         $this->queryMock
             ->expects($this->exactly(1))
             ->method('execute')
-            ->with([ ':id' => 123 ])
+            ->with([':id' => 123])
             ->willReturn([
                 [
                     'pt_id' => '123',
@@ -122,8 +122,8 @@ final class BaseRepositoryJoinTest extends TestCase
             ->expects($this->exactly(2))
             ->method('join')
             ->withConsecutive(
-                [ 'test_product_table', 'pd', [ 'pt.product_id = pd.id' ] ],
-                [ 'test_producer_table', 'pr', [ 'pd.producer_id = pr.id' ] ]
+                ['test_product_table', 'pd', ['pt.product_id = pd.id']],
+                ['test_producer_table', 'pr', ['pd.producer_id = pr.id']]
             )
             ->willReturn($this->queryMock)
         ;
@@ -138,7 +138,7 @@ final class BaseRepositoryJoinTest extends TestCase
             ->method('execute')
             ->with([])
             ->willReturnOnConsecutiveCalls([
-                [ 'count' => 27 ],
+                ['count' => 27],
             ], [
                 [
                     'pt_id' => '123',
@@ -181,7 +181,7 @@ final class BaseRepositoryJoinTest extends TestCase
         $testProductModelInstance->addProductType($testProductTypeModelInstance);
         $testProductTypeModelInstance->setProduct($testProductModelInstance);
         $this->assertInstanceOf(Paginator::class, $results);
-        $this->assertEquals([ $testProductTypeModelInstance ], $results->getArrayCopy());
+        $this->assertEquals([$testProductTypeModelInstance], $results->getArrayCopy());
         $this->assertEquals(5, $results->pack);
         $this->assertEquals(3, $results->page);
         $this->assertEquals(6, $results->pages);
@@ -197,7 +197,7 @@ class TestProducerRepository extends BaseRepository
         $this
             ->setModelClass(TestProducerModel::class)
             ->setStructure('test_producer_table')
-            ->addInt('id', null, [ 'id' => true ], true)
+            ->addInt('id', null, ['id' => true], true)
         ;
     }
 
@@ -216,7 +216,7 @@ class TestProductRepository extends BaseRepository
         $this
             ->setModelClass(TestProductModel::class)
             ->setStructure('test_product_table')
-            ->addInt('id', null, [ 'id' => true ], true)
+            ->addInt('id', null, ['id' => true], true)
             ->addInt('producerId', 'producer_id')
         ;
     }
@@ -242,7 +242,7 @@ class TestProductTypeRepository extends BaseRepository
         $this
             ->setModelClass(TestProductTypeModel::class)
             ->setStructure('test_product_type_table')
-            ->addInt('id', null, [ 'id' => true ], true)
+            ->addInt('id', null, ['id' => true], true)
             ->addInt('productId', 'product_id')
         ;
     }
@@ -258,14 +258,14 @@ class TestProductTypeRepository extends BaseRepository
     {
         $modelRelationsQuery = $this
             ->prepareSelectAllQuery('pt')
-            ->join($this->productRepository, 'pd', [ 'pt.product_id = pd.id' ], [ 'pt' => 'setProduct' ],
-                [ 'pt' => 'addProductType' ])
-            ->join($this->producerRepository, 'pr', [ 'pd.producer_id = pr.id' ], [ 'pd' => 'setProducer' ],
-                [ 'pd' => 'addProduct' ])
+            ->join($this->productRepository, 'pd', ['pt.product_id = pd.id'], ['pt' => 'setProduct'],
+                ['pt' => 'addProductType'])
+            ->join($this->producerRepository, 'pr', ['pd.producer_id = pr.id'], ['pd' => 'setProducer'],
+                ['pd' => 'addProduct'])
         ;
         $this
             ->createSelectAllQuery($modelRelationsQuery)
-            ->where([ 'pt.id = :id' ])
+            ->where(['pt.id = :id'])
             ->limit(1)
             ->bindParam(':id', QueryInterface::PARAM_INT)
         ;
@@ -284,15 +284,14 @@ class TestProductTypeRepository extends BaseRepository
     {
         $modelRelationsQuery = $this
             ->prepareSelectAllQuery('pt')
-            ->join($this->productRepository, 'pd', [ 'pt.product_id = pd.id' ], [ 'pt' => 'setProduct' ],
-                [ 'pt' => 'addProductType' ])
-            ->join($this->producerRepository, 'pr', [ 'pd.producer_id = pr.id' ], [ 'pd' => 'setProducer' ],
-                [ 'pd' => 'addProduct' ])
+            ->join($this->productRepository, 'pd', ['pt.product_id = pd.id'], ['pt' => 'setProduct'],
+                ['pt' => 'addProductType'])
+            ->join($this->producerRepository, 'pr', ['pd.producer_id = pr.id'], ['pd' => 'setProducer'],
+                ['pd' => 'addProduct'])
         ;
         $this->createSelectAllQuery($modelRelationsQuery);
-        $productTypes = $this->getAllByQueryPaginated($modelRelationsQuery, [], $page, $pack, true);
 
-        return $productTypes;
+        return $this->getAllByQueryPaginated($modelRelationsQuery, [], $page, $pack, true);
     }
 
     public function createDbModelInstance(array $data)

@@ -35,8 +35,6 @@ class Where implements WhereInterface
             return '';
         }
 
-        $statement = ' WHERE ' . $this->where->toQuery();
-
-        return $statement;
+        return ' WHERE ' . $this->where->toQuery();
     }
 }

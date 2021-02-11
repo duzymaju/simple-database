@@ -107,9 +107,7 @@ class Field
      */
     public function isJsonType()
     {
-        $jsonType = in_array($this->type, [ self::TYPE_JSON, self::TYPE_JSON_ASSOC ]);
-
-        return $jsonType;
+        return in_array($this->type, [self::TYPE_JSON, self::TYPE_JSON_ASSOC]);
     }
 
     /**
@@ -168,7 +166,7 @@ class Field
 
         switch ($this->type) {
             case self::TYPE_BOOL:
-                return !in_array($dbValue, [ 'false', 'null', '', '0' ]) || false;
+                return !in_array($dbValue, ['false', 'null', '', '0']) || false;
 
             case self::TYPE_DATE_TIME:
                 try {

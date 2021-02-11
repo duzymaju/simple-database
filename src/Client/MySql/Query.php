@@ -347,10 +347,8 @@ class Query implements QueryInterface
             throw new DatabaseException('Statement\'s execution failed.');
         }
 
-        $results = $this->command->getType() === Command::TYPE_SELECT ?
+        return $this->command->getType() === Command::TYPE_SELECT ?
             $this->statement->fetchAll(PDO::FETCH_ASSOC) : null;
-
-        return $results;
     }
 
     /**
@@ -388,11 +386,10 @@ class Query implements QueryInterface
     private function getStringList($values)
     {
         $valuesList = is_array($values) ? array_values($values) : [$values];
-        $stringList = array_filter($valuesList, function ($value) {
+
+        return array_filter($valuesList, function ($value) {
             return is_string($value) && !empty($value);
         });
-
-        return $stringList;
     }
 
     /**

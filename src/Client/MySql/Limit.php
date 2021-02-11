@@ -37,8 +37,6 @@ class Limit implements LimitInterface
             return '';
         }
 
-        $statement = ' LIMIT ' . implode(', ', $this->limit);
-
-        return $statement;
+        return ' LIMIT ' . implode(', ', $this->limit);
     }
 }

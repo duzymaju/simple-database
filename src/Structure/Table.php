@@ -163,9 +163,7 @@ class Table
      */
     public function getField($name)
     {
-        $field = array_key_exists($name, $this->fields) ? $this->fields[$name] : null;
-
-        return $field;
+        return array_key_exists($name, $this->fields) ? $this->fields[$name] : null;
     }
 
     /**
@@ -185,11 +183,9 @@ class Table
      */
     public function getIdFields()
     {
-        $idFields = array_filter($this->fields, function (Field $field) {
+        return array_filter($this->fields, function (Field $field) {
             return $field->isId();
         });
-
-        return $idFields;
     }
 
     /**
@@ -209,11 +205,9 @@ class Table
      */
     public function getAddableFields()
     {
-        $addableFields = array_filter($this->fields, function (Field $field) {
+        return array_filter($this->fields, function (Field $field) {
             return $field !== $this->autoIncrementedField && $field->isAddable();
         });
-
-        return $addableFields;
     }
 
     /**
@@ -223,11 +217,9 @@ class Table
      */
     public function getEditableFields()
     {
-        $editableFields = array_filter($this->fields, function (Field $field) {
+        return array_filter($this->fields, function (Field $field) {
             return $field !== $this->autoIncrementedField && $field->isEditable();
         });
-
-        return $editableFields;
     }
 
     /**
