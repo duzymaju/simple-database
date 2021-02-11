@@ -16,7 +16,7 @@ class Order implements OrderInterface
     const DESC = 'DESC';
 
     /** @var string[] */
-    private $columns = [];
+    private $columns;
 
     /**
      * Construct

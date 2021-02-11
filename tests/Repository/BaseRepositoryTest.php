@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
@@ -11,10 +12,10 @@ use SimpleStructure\Tool\Paginator;
 
 final class BaseRepositoryTest extends TestCase
 {
-    /** @var ConnectionInterface|PHPUnit_Framework_MockObject_MockObject */
+    /** @var ConnectionInterface|MockObject */
     private $connectionMock;
 
-    /** @var QueryInterface|PHPUnit_Framework_MockObject_MockObject */
+    /** @var QueryInterface|MockObject */
     private $queryMock;
 
     /** @before */

@@ -1,5 +1,6 @@
 <?php
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\MySql\Command;
@@ -7,7 +8,7 @@ use SimpleDatabase\Client\MySql\Query;
 
 final class QueryTest extends TestCase
 {
-    /** @var ConnectionInterface|PHPUnit_Framework_MockObject_MockObject */
+    /** @var ConnectionInterface|MockObject */
     private $connectionMock;
 
     /** @before */

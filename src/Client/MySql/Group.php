@@ -10,7 +10,7 @@ use SimpleDatabase\Client\GroupInterface;
 class Group implements GroupInterface
 {
     /** @var array */
-    private $columns = [];
+    private $columns;
 
     /** @var string|null */
     private $having;
