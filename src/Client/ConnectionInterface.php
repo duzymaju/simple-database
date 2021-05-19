@@ -70,16 +70,20 @@ interface ConnectionInterface
     /**
      * Commit
      *
+     * @param boolean $force force
+     *
      * @return self
      */
-    public function commit();
+    public function commit($force = true);
 
     /**
      * Roll back
      *
+     * @param boolean $force force
+     *
      * @return self
      */
-    public function rollBack();
+    public function rollBack($force = true);
 
     /**
      * Get last insert ID

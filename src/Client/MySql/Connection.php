@@ -157,11 +157,15 @@ class Connection implements SqlConnectionInterface
     /**
      * Commit
      *
+     * @param boolean $force force
+     *
      * @return self
      */
-    public function commit()
+    public function commit($force = true)
     {
-        $this->client->commit();
+        if ($force || $this->client->inTransaction()) {
+            $this->client->commit();
+        }
 
         return $this;
     }
@@ -169,11 +173,15 @@ class Connection implements SqlConnectionInterface
     /**
      * Roll back
      *
+     * @param boolean $force force
+     *
      * @return self
      */
-    public function rollBack()
+    public function rollBack($force = true)
     {
-        $this->client->rollBack();
+        if ($force || $this->client->inTransaction()) {
+            $this->client->rollBack();
+        }
 
         return $this;
     }
