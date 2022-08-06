@@ -13,19 +13,19 @@ use SimpleDatabase\Tool\ToStringInterface;
 interface QueryInterface extends ToStringInterface
 {
     /** @var string */
-    const PARAM_BOOL = 'bool';
+    const PARAM_BOOL = RawQueryInterface::PARAM_BOOL;
 
     /** @var string */
-    const PARAM_FLOAT = 'float';
+    const PARAM_FLOAT = RawQueryInterface::PARAM_FLOAT;
 
     /** @var string */
-    const PARAM_INT = 'int';
+    const PARAM_INT = RawQueryInterface::PARAM_INT;
 
     /** @var string */
-    const PARAM_NULL = 'null';
+    const PARAM_NULL = RawQueryInterface::PARAM_NULL;
 
     /** @var string */
-    const PARAM_STRING = 'string';
+    const PARAM_STRING = RawQueryInterface::PARAM_STRING;
 
     /**
      * Construct

@@ -2,8 +2,6 @@
 
 namespace SimpleDatabase\Client\MySql;
 
-use PDO;
-use PDOStatement;
 use ReflectionClass;
 use SimpleDatabase\Client\CommandInterface;
 use SimpleDatabase\Client\Condition\ConditionGroupInterface;
@@ -25,11 +23,8 @@ use SimpleDatabase\Exception\DataException;
  */
 class Query implements QueryInterface
 {
-    /** @var PDO */
-    private $client;
-
-    /** @var PDOStatement|null */
-    private $statement;
+    /** @var ConnectionInterface */
+    private $connection;
 
     /** @var CommandInterface */
     private $command;
@@ -55,6 +50,9 @@ class Query implements QueryInterface
     /** @var string[] */
     private $params = [];
 
+    /** @var RawQuery|null */
+    private $rawQuery;
+
     /**
      * Construct
      *
@@ -67,7 +65,7 @@ class Query implements QueryInterface
     public function __construct(ConnectionInterface $connection, $commandType, $tableName, $tableSlug = null,
         $items = [])
     {
-        $this->client = $connection->getClient();
+        $this->connection = $connection;
         $this->command = new Command($commandType, $this->getStringList($items));
         $this->tables[] = new Table(Table::TYPE_MAIN, $tableName, $tableSlug);
     }
@@ -83,7 +81,7 @@ class Query implements QueryInterface
      */
     public function join($tableName, $tableSlug, $condition)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->tables[] = new Table(Table::TYPE_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
@@ -100,7 +98,7 @@ class Query implements QueryInterface
      */
     public function leftJoin($tableName, $tableSlug, $condition)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->tables[] = new Table(Table::TYPE_LEFT_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
@@ -117,7 +115,7 @@ class Query implements QueryInterface
      */
     public function rightJoin($tableName, $tableSlug, $condition)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->tables[] = new Table(Table::TYPE_RIGHT_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
@@ -134,7 +132,7 @@ class Query implements QueryInterface
      */
     public function outerJoin($tableName, $tableSlug, $condition)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->tables[] = new Table(Table::TYPE_OUTER_JOIN, $tableName, $tableSlug, $this->getStringList($condition));
 
         return $this;
@@ -149,7 +147,7 @@ class Query implements QueryInterface
      */
     public function set($set)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->set = new Set($this->getStringList($set));
 
         return $this;
@@ -164,7 +162,7 @@ class Query implements QueryInterface
      */
     public function where($where)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->where = new Where($where instanceof ConditionGroupInterface ? $where : $this->getStringList($where));
 
         return $this;
@@ -204,7 +202,7 @@ class Query implements QueryInterface
      */
     public function groupBy($group, $having = [])
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->group = new Group($this->getStringList($group), $this->getStringList($having));
 
         return $this;
@@ -219,7 +217,7 @@ class Query implements QueryInterface
      */
     public function orderBy($order)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         if (is_string($order)) {
             $this->order = new Order(array_combine([$order], [Order::ASC]));
         } elseif (is_array($order)) {
@@ -246,7 +244,7 @@ class Query implements QueryInterface
      */
     public function limit($limit, $offset = null)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
         $this->limit = new Limit($limit, $offset);
 
         return $this;
@@ -309,7 +307,7 @@ class Query implements QueryInterface
      */
     public function bindParam($name, $type)
     {
-        $this->resetStatement();
+        $this->resetRawQuery();
 		$this->params[$name] = $type;
 
         return $this;
@@ -327,28 +325,13 @@ class Query implements QueryInterface
      */
     public function execute(array $params = [])
     {
-        $paramNames = array_keys($this->params);
-        $valueNames = array_keys($params);
-        $namesCount = count($paramNames);
-        if ($namesCount !== count($valueNames) || $namesCount !== count(array_intersect($paramNames, $valueNames))) {
-            throw new DataException('Params should be equal to declared before.');
+        if (!isset($this->rawQuery)) {
+            $fetchAll = $this->command->getType() === CommandInterface::TYPE_SELECT;
+            $this->rawQuery = new RawQuery($this->connection, $this->toString(), $fetchAll);
+            $this->rawQuery->bindParams($this->params);
         }
 
-        if (!isset($this->statement)) {
-            $this->statement = $this->client->prepare($this->toString());
-        }
-        foreach ($this->params as $name => $type) {
-            $pdoType = $this->getPdoType($type);
-            if (array_key_exists($name, $params) && isset($pdoType)) {
-                $this->statement->bindValue($name, $params[$name], $pdoType);
-            }
-        }
-        if (!$this->statement->execute()) {
-            throw new DatabaseException('Statement\'s execution failed.');
-        }
-
-        return $this->command->getType() === Command::TYPE_SELECT ?
-            $this->statement->fetchAll(PDO::FETCH_ASSOC) : null;
+        return $this->rawQuery->execute($params);
     }
 
     /**
@@ -363,7 +346,7 @@ class Query implements QueryInterface
         $reflection = new ReflectionClass(self::class);
         /** @var self $queryClone */
         $queryClone = $reflection->newInstanceWithoutConstructor();
-        $queryClone->client = $this->client;
+        $queryClone->connection = $this->connection;
         $queryClone->command = new Command(CommandInterface::TYPE_SELECT, $this->getStringList($items));
         $queryClone->tables = $this->tables;
         $queryClone->set = $this->set;
@@ -393,40 +376,12 @@ class Query implements QueryInterface
     }
 
     /**
-     * Get PDO type
-     *
-     * @param string $type type
-     *
-     * @return int|null
+     * Reset raw query
      */
-    private function getPdoType($type)
+    private function resetRawQuery()
     {
-        switch ($type) {
-            case self::PARAM_BOOL:
-                return PDO::PARAM_BOOL;
-
-            case self::PARAM_FLOAT:
-            case self::PARAM_STRING:
-                return PDO::PARAM_STR;
-
-            case self::PARAM_INT:
-                return PDO::PARAM_INT;
-
-            case self::PARAM_NULL:
-                return PDO::PARAM_NULL;
-
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Reset statement
-     */
-    private function resetStatement()
-    {
-        if (isset($this->statement)) {
-            $this->statement = null;
+        if (isset($this->rawQuery)) {
+            $this->rawQuery = null;
         }
     }
 }

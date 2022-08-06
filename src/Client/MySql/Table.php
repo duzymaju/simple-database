@@ -57,7 +57,7 @@ class Table implements TableInterface
      */
     public function toString()
     {
-        $statement = $this->tableName . (isset( $this->tableSlug) ? ' ' . $this->tableSlug : '');
+        $statement = $this->tableName . (isset($this->tableSlug) ? ' ' . $this->tableSlug : '');
 
         if ($this->type !== self::TYPE_MAIN) {
             if (count($this->condition) === 1 && strpos(reset($this->condition), '=') === false) {

@@ -7,6 +7,7 @@ use Exception;
 use PDO;
 use SimpleDatabase\Client\CommandInterface;
 use SimpleDatabase\Client\QueryInterface;
+use SimpleDatabase\Client\RawQueryInterface;
 use SimpleDatabase\Client\SqlConnectionInterface;
 use SimpleDatabase\Exception\DatabaseException;
 use SimpleStructure\Tool\Parser;
@@ -122,6 +123,8 @@ class Connection implements SqlConnectionInterface
     /**
      * Query
      *
+     * @deprecated To be removed in 0.4.0. Use rawQuery instead.
+     *
      * @param string $statement statement
      * @param bool   $fetchAll  fetch all
      *
@@ -140,6 +143,19 @@ class Connection implements SqlConnectionInterface
                 (int) $exception->getCode(), $exception
             );
         }
+    }
+
+    /**
+     * Raw query
+     *
+     * @param string $queryString query string
+     * @param bool   $fetchAll    fetch all
+     *
+     * @return RawQueryInterface
+     */
+    public function rawQuery($queryString, $fetchAll = false)
+    {
+        return new RawQuery($this, $queryString, $fetchAll);
     }
 
     /**
