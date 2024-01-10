@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b2e26a5e45fc419c920fe87ce9668dd8",
+    "content-hash": "0ec619115ac799b871b4ec053f345439",
     "packages": [
         {
             "name": "majpage/simple-structure",
-            "version": "0.3.0",
+            "version": "0.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/duzymaju/simple-structure.git",
-                "reference": "c3bd72e3336ceab96f2d5c33540c58ba93a3f999"
+                "reference": "85f14ec1129029a836b91bfc9f747b17f13de580"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/duzymaju/simple-structure/zipball/c3bd72e3336ceab96f2d5c33540c58ba93a3f999",
-                "reference": "c3bd72e3336ceab96f2d5c33540c58ba93a3f999",
+                "url": "https://api.github.com/repos/duzymaju/simple-structure/zipball/85f14ec1129029a836b91bfc9f747b17f13de580",
+                "reference": "85f14ec1129029a836b91bfc9f747b17f13de580",
                 "shasum": ""
             },
             "require": {
@@ -51,9 +51,9 @@
             "description": "Simple PHP project's structure",
             "support": {
                 "issues": "https://github.com/duzymaju/simple-structure/issues",
-                "source": "https://github.com/duzymaju/simple-structure/tree/0.3.0"
+                "source": "https://github.com/duzymaju/simple-structure/tree/0.3.1"
             },
-            "time": "2021-02-11T22:52:33+00:00"
+            "time": "2023-08-23T00:31:48+00:00"
         }
     ],
     "packages-dev": [
@@ -2155,5 +2155,5 @@
         "ext-pdo": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "2.3.0"
 }
