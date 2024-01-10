@@ -3,6 +3,7 @@
 namespace SimpleDatabase\Repository;
 
 use DateTime;
+use SimpleDatabase\Cache\QueryModelsCache;
 use SimpleDatabase\Client\ConnectionInterface;
 use SimpleDatabase\Client\QueryInterface;
 use SimpleDatabase\Client\TableInterface;
@@ -366,19 +367,31 @@ abstract class BaseRepository
         $options = array_merge([
             'onModelCreate' => null,
             'onModelDataGet' => null,
+            'queryModelsCache' => null,
         ], $options);
 
         $results = $query->execute($params);
         $items = [];
         $onModelCreateCallback = is_callable($options['onModelCreate']) ? $options['onModelCreate'] : null;
         $onModelDataGetCallback = is_callable($options['onModelDataGet']) ? $options['onModelDataGet'] : null;
+        $queryModelsCache = $options['queryModelsCache'] instanceof QueryModelsCache ?
+            $options['queryModelsCache'] :
+            null;
         foreach ($results as $result) {
             $itemData = isset($onModelDataGetCallback) ? $onModelDataGetCallback($result) : $result;
-            $item = $this->createDbModelInstance($itemData);
+            $item = isset($queryModelsCache) ?
+                $queryModelsCache->supportModelInstance(
+                    $this->getTableName(), $this->getIdValues($itemData), function () use ($itemData) {
+                        return $this->createDbModelInstance($itemData);
+                    }
+                ) :
+                $this->createDbModelInstance($itemData);
             if (isset($onModelCreateCallback)) {
                 $onModelCreateCallback($item, $result);
             }
-            $items[] = $item;
+            if (!in_array($item, $items)) {
+                $items[] = $item;
+            }
         }
 
         return $items;
@@ -413,30 +426,37 @@ abstract class BaseRepository
      * Get all by query
      *
      * @param ModelsRelationsQuery $modelRelationsQuery model relations query
-     * @param array               $params              params
-     * @param array               $options             options
+     * @param array                $params              params
+     * @param array                $options             options
      *
      * @return ModelInterface[]
      */
     protected function getAllByQuery(ModelsRelationsQuery $modelRelationsQuery, array $params = [], array $options = [])
     {
+        $queryModelsCache = new QueryModelsCache();
+        $options['queryModelsCache'] = $queryModelsCache;
+
         $options['onModelDataGet'] = function ($data) use ($modelRelationsQuery) {
             return $this->getPrefixedValues($data, $modelRelationsQuery->getTableSlug());
         };
 
-        $options['onModelCreate'] = function ($mainModel, $data) use ($modelRelationsQuery) {
+        $options['onModelCreate'] = function ($mainModel, $data) use ($modelRelationsQuery, $queryModelsCache) {
             $relations = $modelRelationsQuery->getRelations();
             foreach ($relations as $relation) {
                 $repository = $relation->getRepository();
-                $model = $repository->createDbModelInstance(
-                    $repository->getPrefixedValues($data, $relation->getTableSlug())
+                $modelData = $repository->getPrefixedValues($data, $relation->getTableSlug());
+                $model = $queryModelsCache->supportModelInstance(
+                    $repository->getTableName(), $repository->getIdValues($modelData),
+                    function () use ($repository, $modelData) {
+                        return $repository->createDbModelInstance($modelData);
+                    }
                 );
                 $relation->setModel($model);
             }
             foreach ($modelRelationsQuery->getRelations() as $relationFrom) {
-                $relationFrom->bindWith($modelRelationsQuery->getTableSlug(), $mainModel);
+                $relationFrom->bindWith($modelRelationsQuery->getTableSlug(), $mainModel, $queryModelsCache);
                 foreach ($modelRelationsQuery->getRelations() as $relationTo) {
-                    $relationFrom->bindWith($relationTo->getTableSlug(), $relationTo->getModel());
+                    $relationFrom->bindWith($relationTo->getTableSlug(), $relationTo->getModel(), $queryModelsCache);
                 }
             }
         };
@@ -688,6 +708,26 @@ abstract class BaseRepository
         }
 
         return $filteredData;
+    }
+
+    /**
+     * Get ID values
+     *
+     * @param array $data data
+     *
+     * @return array
+     */
+    protected function getIdValues(array $data)
+    {
+        $idValues = [];
+        foreach ($this->table->getIdFields() as $field) {
+            $dbName = $field->getDbName();
+            if (array_key_exists($dbName, $data)) {
+                $idValues[] = $data[$dbName];
+            }
+        }
+
+        return $idValues;
     }
 
     /**

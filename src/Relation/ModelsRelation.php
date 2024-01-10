@@ -2,6 +2,7 @@
 
 namespace SimpleDatabase\Relation;
 
+use SimpleDatabase\Cache\QueryModelsCache;
 use SimpleDatabase\Model\ModelInterface;
 use SimpleDatabase\Repository\BaseRepository;
 
@@ -144,12 +145,13 @@ final class ModelsRelation
     /**
      * Bind with model
      *
-     * @param string              $tableSlug table slug
-     * @param ModelInterface|null $model     model
+     * @param string              $tableSlug        table slug
+     * @param ModelInterface|null $model            model
+     * @param QueryModelsCache    $queryModelsCache query models cache
      *
      * @return self
      */
-    public function bindWith($tableSlug, ModelInterface $model = null)
+    public function bindWith($tableSlug, ModelInterface $model, QueryModelsCache $queryModelsCache)
     {
         if (!isset($this->model) || !isset($model)) {
             return $this;
@@ -157,12 +159,16 @@ final class ModelsRelation
 
         if (array_key_exists($tableSlug, $this->relationsFor)) {
             $method = $this->relationsFor[$tableSlug];
-            $model->$method($this->model);
+            if (!$queryModelsCache->relationExistsOnce(['for', $tableSlug, $method], $model, $this->model)) {
+                $model->$method($this->model);
+            }
         }
         if (array_key_exists($tableSlug, $this->relationsTo)) {
             $method = $this->relationsTo[$tableSlug];
-            $currentModel = $this->model;
-            $currentModel->$method($model);
+            if (!$queryModelsCache->relationExistsOnce(['to', $tableSlug, $method], $this->model, $model)) {
+                $currentModel = $this->model;
+                $currentModel->$method($model);
+            }
         }
 
         return $this;
