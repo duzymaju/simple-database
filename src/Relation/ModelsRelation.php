@@ -151,7 +151,7 @@ final class ModelsRelation
      *
      * @return self
      */
-    public function bindWith($tableSlug, ModelInterface $model, QueryModelsCache $queryModelsCache)
+    public function bindWith($tableSlug, $model, QueryModelsCache $queryModelsCache)
     {
         if (!isset($this->model) || !isset($model)) {
             return $this;
