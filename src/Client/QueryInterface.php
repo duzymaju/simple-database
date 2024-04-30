@@ -40,6 +40,15 @@ interface QueryInterface extends ToStringInterface
         $items = []);
 
     /**
+     * Add to select
+     *
+     * @param string[]|string $items items
+     *
+     * @return self
+     */
+    public function addToSelect($items);
+
+    /**
      * Join
      *
      * @param string          $tableName table name

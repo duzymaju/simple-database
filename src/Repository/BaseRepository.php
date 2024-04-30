@@ -386,11 +386,13 @@ abstract class BaseRepository
                     }
                 ) :
                 $this->createDbModelInstance($itemData);
-            if (isset($onModelCreateCallback)) {
-                $onModelCreateCallback($item, $result);
-            }
-            if (!in_array($item, $items)) {
-                $items[] = $item;
+            if (isset($item)) {
+                if (isset($onModelCreateCallback)) {
+                    $onModelCreateCallback($item, $result);
+                }
+                if (!in_array($item, $items)) {
+                    $items[] = $item;
+                }
             }
         }
 

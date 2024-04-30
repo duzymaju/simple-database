@@ -71,6 +71,20 @@ class Query implements QueryInterface
     }
 
     /**
+     * Add to select
+     *
+     * @param string[]|string $items items
+     *
+     * @return self
+     */
+    public function addToSelect($items)
+    {
+        $this->command->addItems($this->getStringList($items));
+
+        return $this;
+    }
+
+    /**
      * Join
      *
      * @param string          $tableName table name

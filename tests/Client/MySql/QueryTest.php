@@ -28,6 +28,7 @@ final class QueryTest extends TestCase
             'jt.*', 'ljt.param3', 'rjt.param3',
         ]);
         $query
+            ->addToSelect(['jt.param1'])
             ->join('JoinedTable', 'jt', 'jt.param1 = 1')
             ->leftJoin('LeftJoinedTable', 'ljt', ['jt.param2 = ljt.param1', 'ljt.param2 = "w"'])
             ->rightJoin('RightJoinedTable', 'rjt', 'jt.param3 = rjt.param1')
@@ -42,7 +43,7 @@ final class QueryTest extends TestCase
         ;
 
         $this->assertEquals(
-            'SELECT jt.*, ljt.param3, rjt.param3 FROM test_table t' .
+            'SELECT jt.*, ljt.param3, rjt.param3, jt.param1 FROM test_table t' .
             ' INNER JOIN JoinedTable jt ON jt.param1 = 1' .
             ' LEFT OUTER JOIN LeftJoinedTable ljt ON jt.param2 = ljt.param1 && ljt.param2 = "w"' .
             ' RIGHT OUTER JOIN RightJoinedTable rjt ON jt.param3 = rjt.param1' .
@@ -75,10 +76,15 @@ final class QueryTest extends TestCase
             ->bindParam('bb', Query::PARAM_STRING)
             ->bindParam('cc', Query::PARAM_BOOL)
         ;
-        $clonedQuery = $query->cloneSelect('ljt.*');
+        $clonedQuery = $query
+            ->cloneSelect('ljt.*')
+            ->addToSelect([])
+            ->addToSelect('jt.param1')
+            ->addToSelect(['jt.param2', 'jt.param3'])
+        ;
 
         $this->assertEquals(
-            'SELECT ljt.* FROM test_table t' .
+            'SELECT ljt.*, jt.param1, jt.param2, jt.param3 FROM test_table t' .
             ' INNER JOIN JoinedTable jt ON jt.param1 = 1' .
             ' LEFT OUTER JOIN LeftJoinedTable ljt ON jt.param2 = ljt.param1 && ljt.param2 = "w"' .
             ' RIGHT OUTER JOIN RightJoinedTable rjt ON jt.param3 = rjt.param1' .

@@ -123,7 +123,7 @@ class Connection implements SqlConnectionInterface
     /**
      * Query
      *
-     * @deprecated To be removed in 0.4.0. Use rawQuery instead.
+     * @deprecated To be removed in 0.5.0. Use rawQuery instead.
      *
      * @param string $statement statement
      * @param bool   $fetchAll  fetch all

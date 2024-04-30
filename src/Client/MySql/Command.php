@@ -13,7 +13,7 @@ class Command implements CommandInterface
     /** @var int */
     private $type;
 
-    /** @var array */
+    /** @var string[] */
     private $items;
 
     /**
@@ -36,6 +36,20 @@ class Command implements CommandInterface
     public function getType()
     {
         return $this->type;
+    }
+
+    /**
+     * Add items
+     *
+     * @param string[] $items items
+     *
+     * @return self
+     */
+    public function addItems(array $items)
+    {
+        array_push($this->items, ...$items);
+
+        return $this;
     }
 
     /**
